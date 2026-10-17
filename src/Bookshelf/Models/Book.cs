@@ -10,6 +10,9 @@ public sealed record Book
     public string? Publisher { get; init; }
     public int? PublishedYear { get; init; }
     public string? CoverUrl { get; init; }
+
+    /// <summary>Our own cover photo (Firebase Storage <c>libraries/{id}/covers/{PhotoId}.jpg</c>); shown instead of <see cref="CoverUrl"/>.</summary>
+    public string? PhotoId { get; init; }
     public string? Notes { get; init; }
     public DateTimeOffset AddedUtc { get; init; }
 

@@ -1,0 +1,43 @@
+@inject PhotoService Photos
+@inject ISnackbar Snackbar
+
+@* A label styled as a button opens the file picker; on phones that offers the camera or the gallery. *@
+<input type="file" accept="image/*" id="@_inputId" class="visually-hidden" @ref="_input" @onchange="OnFileChosenAsync"
+       data-testid="photo-input" />
+<MudButton HtmlTag="label" for="@_inputId" Variant="@Variant" Color="Color.Primary" Size="@Size"
+           StartIcon="@Icons.Material.Filled.PhotoCamera" Disabled="_busy" data-testid="photo-button">
+    @(_busy ? "Saving photo…" : Label)
+</MudButton>
+
+@code {
+    private readonly string _inputId = $"photo-{Guid.NewGuid():N}";
+    private ElementReference _input;
+    private bool _busy;
+
+    [Parameter] public string Label { get; set; } = "Photo";
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+
+    /// <summary>Called with the resized photo, stored on this device but not yet attached to a book.</summary>
+    [Parameter] public EventCallback<CapturedPhoto> OnCaptured { get; set; }
+
+    private async Task OnFileChosenAsync()
+    {
+        _busy = true;
+        try
+        {
+            if (await Photos.CaptureAsync(_input) is { } photo)
+            {
+                await OnCaptured.InvokeAsync(photo);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Couldn't use that photo: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

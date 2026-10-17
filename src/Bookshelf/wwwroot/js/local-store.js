@@ -1,10 +1,10 @@
 // Minimal IndexedDB wrapper used by IndexedDbLocalStore.
 const DB_NAME = 'bookshelf';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise;
 
-function open() {
+export function open() {
     dbPromise ??= new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onupgradeneeded = () => {
@@ -12,6 +12,8 @@ function open() {
             if (!db.objectStoreNames.contains('books')) db.createObjectStore('books', { keyPath: 'id' });
             if (!db.objectStoreNames.contains('outbox')) db.createObjectStore('outbox', { keyPath: 'id' });
             if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+            // v2: cover photos (JPEG blobs) and their upload/delete state; see photos.js.
+            if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos', { keyPath: 'id' });
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);

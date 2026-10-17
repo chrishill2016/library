@@ -8,6 +8,9 @@ public sealed class BookForm
 {
     private Book? _original;
 
+    /// <summary>Chosen up front so a photo can be taken before the first save.</summary>
+    private readonly string _newId = Book.NewId();
+
     public string Title { get; set; } = "";
     public string Author { get; set; } = "";
     public string? Isbn { get; set; }
@@ -15,8 +18,14 @@ public sealed class BookForm
     public int? PublishedYear { get; set; }
     public string? CoverUrl { get; set; }
     public string? Notes { get; set; }
+    public string? PhotoId { get; set; }
 
     public bool IsNew => _original is null;
+
+    public string Id => _original?.Id ?? _newId;
+
+    /// <summary>The photo the book had when the form opened (to delete it if replaced).</summary>
+    public string? OriginalPhotoId => _original?.PhotoId;
 
     public static BookForm From(Book book) => new()
     {
@@ -28,9 +37,10 @@ public sealed class BookForm
         PublishedYear = book.PublishedYear,
         CoverUrl = book.CoverUrl,
         Notes = book.Notes,
+        PhotoId = book.PhotoId,
     };
 
-    public Book ToBook() => (_original ?? new Book { Id = Book.NewId() }) with
+    public Book ToBook() => (_original ?? new Book { Id = _newId }) with
     {
         Title = Title,
         Author = Author,
@@ -39,6 +49,7 @@ public sealed class BookForm
         PublishedYear = PublishedYear,
         CoverUrl = CoverUrl,
         Notes = Notes,
+        PhotoId = PhotoId,
         // Saving the form means a person has checked the details.
         LookupState = null,
     };

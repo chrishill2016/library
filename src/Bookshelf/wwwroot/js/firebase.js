@@ -8,12 +8,16 @@ import {
     connectFirestoreEmulator, getFirestore, collection, doc, query, where, orderBy, getDoc, getDocs, addDoc, updateDoc,
     writeBatch, serverTimestamp, arrayUnion, arrayRemove, Timestamp,
 } from '../lib/firebase/firebase-firestore-lite.js';
+import {
+    connectStorageEmulator, getStorage, ref, uploadBytes, getBlob, deleteObject,
+} from '../lib/firebase/firebase-storage.js';
 
 // Firestore allows 500 writes per batch; stay well below so security-rule lookups stay cheap.
 const BATCH_SIZE = 100;
 
 let auth;
 let db;
+let storage;
 
 export async function initialize(options, dotnetRef) {
     if (auth) return;
@@ -21,7 +25,9 @@ export async function initialize(options, dotnetRef) {
     const app = initializeApp(config);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     if (emulatorHost) {
+        connectStorageEmulator(storage, emulatorHost, 9199);
         // Local testing only (see FirebaseOptions.EmulatorHost).
         connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
         connectFirestoreEmulator(db, emulatorHost, 8080);
@@ -125,5 +131,25 @@ export async function putBooks(libraryId, books) {
             batch.set(doc(db, 'libraries', libraryId, 'books', book.id), { ...book, syncedAt: serverTimestamp() });
         }
         await batch.commit();
+    }
+}
+
+// ---------- Cover photos (Firebase Storage) ----------
+
+const coverRef = (libraryId, photoId) => ref(storage, `libraries/${libraryId}/covers/${photoId}.jpg`);
+
+export function uploadCover(libraryId, photoId, blob) {
+    return uploadBytes(coverRef(libraryId, photoId), blob, { contentType: 'image/jpeg' });
+}
+
+export function downloadCover(libraryId, photoId) {
+    return getBlob(coverRef(libraryId, photoId));
+}
+
+export async function deleteCover(libraryId, photoId) {
+    try {
+        await deleteObject(coverRef(libraryId, photoId));
+    } catch (e) {
+        if (e?.code !== 'storage/object-not-found') throw e;
     }
 }

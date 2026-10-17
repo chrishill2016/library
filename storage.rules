@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Bookshelf cover photos: libraries/{libraryId}/covers/{photoId}.jpg
+// Only members of the library (per Firestore) can read, upload or delete.
+// Deploy: paste into Firebase console → Storage → Rules, or `firebase deploy --only storage`.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /libraries/{libraryId}/covers/{fileName} {
+      function isMember() {
+        return request.auth != null
+          && request.auth.uid in firestore.get(/databases/(default)/documents/libraries/$(libraryId)).data.memberUids;
+      }
+
+      allow read, delete: if isMember();
+
+      // JPEGs under 2 MB with a plain id-style name (photos are resized to ~150 KB on the phone).
+      allow create, update: if isMember()
+        && fileName.matches('^[A-Za-z0-9_-]{8,64}[.]jpg$')
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+  }
+}

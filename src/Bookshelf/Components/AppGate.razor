@@ -2,6 +2,7 @@
 @inject AuthService Auth
 @inject LibraryService Library
 @inject PendingLookupService PendingLookups
+@inject Bookshelf.Features.Photos.PhotoService Photos
 
 @* Sign-in is required: only show the app once a library is ready. *@
 @switch (Library.Status)
@@ -68,6 +69,8 @@
             try
             {
                 await PendingLookups.RunAsync();
+                // Upload photos taken offline last time.
+                await Photos.SyncAsync();
             }
             catch (Exception)
             {

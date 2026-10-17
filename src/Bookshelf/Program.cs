@@ -3,6 +3,7 @@ using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
 using Bookshelf.Features.Library;
 using Bookshelf.Features.Lookup;
+using Bookshelf.Features.Photos;
 using Bookshelf.Features.Scan;
 using Bookshelf.Services.Browser;
 using Bookshelf.Services.Firebase;
@@ -48,5 +49,7 @@ builder.Services.AddSingleton<IBookLookup, BookLookupService>();
 builder.Services.AddSingleton<PendingLookupService>();
 builder.Services.AddSingleton<ScanService>();
 builder.Services.AddSingleton<IBarcodeScanner, BarcodeScanner>();
+builder.Services.AddSingleton<IPhotoStore, JsPhotoStore>();
+builder.Services.AddSingleton<PhotoService>();
 
 await builder.Build().RunAsync();
