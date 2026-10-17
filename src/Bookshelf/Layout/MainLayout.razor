@@ -6,6 +6,7 @@
 @inject AuthService Auth
 @inject LibraryService Library
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <MudThemeProvider Theme="@Themes.Current.Theme" IsDarkMode="@Themes.Current.IsDark" />
 <MudPopoverProvider />
@@ -45,17 +46,36 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        Themes.Changed += OnChanged;
+        Themes.Changed += OnThemeChanged;
         Library.Changed += OnChanged;
         Sync.SyncCompleted += OnSyncCompleted;
 
         await Themes.InitializeAsync();
+        await ApplyChromeAsync();
         await Updates.InitializeAsync();
         await Sync.InitializeAsync();
         await Auth.InitializeAsync();
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnThemeChanged() => InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        await ApplyChromeAsync();
+    });
+
+    private async Task ApplyChromeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("bookshelfChrome", Themes.Current.BarColor, Themes.Current.PageColor);
+        }
+        catch (JSException)
+        {
+            // Cosmetic only.
+        }
+    }
 
     private void OnSyncCompleted(SyncResult result) => InvokeAsync(() =>
     {
@@ -72,7 +92,7 @@
 
     public void Dispose()
     {
-        Themes.Changed -= OnChanged;
+        Themes.Changed -= OnThemeChanged;
         Library.Changed -= OnChanged;
         Sync.SyncCompleted -= OnSyncCompleted;
     }
