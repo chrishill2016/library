@@ -1,6 +1,6 @@
 # Bookshelf
 
-A family library app for keeping track of the books we own. It's an installable, offline-first Progressive Web App styled like an old leather-bound book.
+A family library app for keeping track of the books we own. It's an installable, offline-first Progressive Web App styled like an old book, with a choice of five "bindings" (themes).
 
 **Today:**
 - Sign in with Google, then share one library with family. The owner invites people by email, and they join when they sign in.
@@ -131,9 +131,11 @@ Themes are called "bindings" in the UI. To add one:
 
 1. Add a factory method in `Theming/ThemeRegistry.cs` that returns an `AppTheme` (key, name, description, `IsDark`, swatches, `MudTheme`).
 2. Add it to `ThemeRegistry.All`.
-3. Optionally add `.theme-<key>` texture rules in `wwwroot/css/app.css`.
+3. Add `.theme-<key>` texture rules in `wwwroot/css/app.css` (background, `.gilt-appbar`, `.tooled-panel`, and `--cover-board` / `--cover-ink` for placeholder covers).
 
-The selected theme is saved per device.
+Bindings today: Leather & Gilt (default), Cloth-bound Green, Library at Night, Parchment (light) and Marbled Endpapers (light). A test checks every binding meets WCAG AA contrast for text, buttons and the app bar.
+
+The selected theme is saved per device. The phone's status bar colour and the page behind the app follow it (`bookshelfChrome` in `index.html`, remembered in localStorage so a light binding doesn't flash dark on start-up).
 
 ## Run locally
 

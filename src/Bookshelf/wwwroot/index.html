@@ -16,6 +16,19 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <script type="importmap"></script>
+    <script>
+        // The phone's status bar and the page behind the app follow the chosen theme ("binding").
+        // Remembered here so a light theme doesn't flash dark while the app starts.
+        window.bookshelfChrome = function (bar, page) {
+            document.querySelector('meta[name=theme-color]').setAttribute('content', bar);
+            document.documentElement.style.setProperty('--bookshelf-page', page);
+            try { localStorage.setItem('bookshelf.chrome', JSON.stringify([bar, page])); } catch (e) { }
+        };
+        try {
+            var saved = JSON.parse(localStorage.getItem('bookshelf.chrome'));
+            if (saved) window.bookshelfChrome(saved[0], saved[1]);
+        } catch (e) { }
+    </script>
 </head>
 
 <body>

@@ -14,4 +14,13 @@ public sealed record AppTheme(
     string Description,
     bool IsDark,
     IReadOnlyList<string> Swatches,
-    MudTheme Theme);
+    MudTheme Theme)
+{
+    /// <summary>The app bar colour: also used for the phone's status bar.</summary>
+    public string BarColor => Hex(IsDark ? Theme.PaletteDark.AppbarBackground : Theme.PaletteLight.AppbarBackground);
+
+    /// <summary>The page colour: shown behind the app (overscroll, start-up).</summary>
+    public string PageColor => Hex(IsDark ? Theme.PaletteDark.Background : Theme.PaletteLight.Background);
+
+    private static string Hex(MudBlazor.Utilities.MudColor colour) => colour.ToString(MudBlazor.Utilities.MudColorOutputFormats.Hex);
+}

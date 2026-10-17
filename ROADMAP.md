@@ -21,6 +21,7 @@
   - Shelf shows your stars and status, pins books you're reading, filters by status and sorts by your rating.
   - Rules let each person write only their own reading, with emulator tests.
   - Reading lists: an ordered "to read next" list each (drag to reorder), with wishlist books we don't own yet.
+- [x] **More bindings (themes):** Cloth-bound Green, Library at Night, Parchment (light) and Marbled Endpapers (light), alongside Leather & Gilt; each checked for readable contrast.
 - [x] **Firebase budget alert** set up in the console, so costs never get silly.
 
 ## Later / ideas
@@ -30,7 +31,6 @@
   - **Lent out / borrowed:** books we've lent (to whom, since when) and books we've borrowed (from whom, from a library, due back), with reminders and "Returned".
   - **Kindle (and other e-books):** a format on each book (paper, Kindle, audiobook) so e-books can be logged and rated without counting as on the shelf, plus a filter by format.
 - Shelves or tags (e.g. "Fiction", "Kids", "Loft box 3") and filtering by them.
-- More themes ("bindings"): Parchment (light), Library at Night, Cloth-bound Green.
 - Owner can remove a member, rename the library, or transfer ownership.
 - Live updates (Firestore listeners) instead of syncing on start, after edits, on reconnect and with "Sync now".
 - Export or backup of the collection (CSV or JSON).
