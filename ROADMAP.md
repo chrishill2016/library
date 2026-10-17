@@ -13,7 +13,7 @@
   - Offline scans filled in automatically later.
   - Find online by title/author, and covers cached for offline use.
 - [x] **Phase 4: Cover photos.**
-  - Photo from the book page or edit form, auto-trimmed to 2:3 and shrunk to about 800px JPEG.
+  - Photo from the book page or edit form (camera or gallery), cropped by dragging corners from a guessed outline and straightened, shrunk to about 800px JPEG.
   - Works offline, uploads to Firebase Storage, and syncs to the other phone.
   - Storage rules allow members only, with emulator tests.
 - [ ] **Phase 5: Reviews and reading log.** Personal 1–5 star rating, review and "read on" dates for each of us per book, visible to the other.

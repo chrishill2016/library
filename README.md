@@ -6,7 +6,7 @@ A family library app for keeping track of the books we own. It's an installable,
 - Sign in with Google, then share one library with family. The owner invites people by email, and they join when they sign in.
 - **Scan to add:** point the camera at the barcode and the book is looked up (title, author, publisher, year, cover) and added. There's a rapid mode with undo and a "confirm each book" mode. Duplicates are flagged, not re-added.
 - **Find online** by title or author for books without a barcode, or look up an ISBN from the add form.
-- **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). It's trimmed to a book shape, shrunk to about 800px, works offline and syncs to the other phone.
+- **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). The app guesses where the book is; drag the corners to adjust and it's straightened into a clean cover, shrunk to about 800px. Works offline and syncs to the other phone.
 - Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname or date added.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
 
@@ -28,7 +28,7 @@ src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
   Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
   Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
-  Features/Photos/      PhotoService, PhotoButton, IPhotoStore (wwwroot/js/photos.js)
+  Features/Photos/      PhotoService, PhotoButton, CoverCropper, IPhotoStore (wwwroot/js/photos.js, cover-geometry.js)
   Features/Account/     AuthService, sign-in screen
   Features/Library/     LibraryService (create, invite, join), setup screen, library settings
   Features/Settings/    Library, sync, theme, account, about
@@ -75,8 +75,11 @@ The remote is Firestore (`FirestoreRemoteStore`):
 ## Cover photos
 
 - **Taking a photo:** the Photo button (book page and edit form) opens the camera directly; the gallery icon next to it picks an existing picture.
+- **Cropping:** the photo opens full screen with four corner handles (`CoverCropper`, drawn by `photos.js` so dragging stays smooth).
+  - The handles start on a guess (`cover-geometry.js`): on a 256px copy it finds strong straight edges on each side, picks the four that make the most convincing closed outline, then moves each side outwards past strong bands inside the cover (like a title strip). With no convincing outline it falls back to a centred 2:3 box.
+  - "Whole photo" uses the full frame; "Guess again" goes back to the guess.
 - **Processing** happens in `photos.js`:
-  - EXIF rotation is applied, the photo is centre-trimmed to 2:3 and scaled to at most 800px, then saved as an 80% JPEG (typically 50–150 KB).
+  - EXIF rotation is applied, the outlined area is perspective-corrected into a flat rectangle (its size from the outline's sides) scaled to at most 800px, then saved as an 80% JPEG (typically 40–150 KB).
   - It's stored in IndexedDB (`photos` store) and shown from there.
 - **Book field:** `PhotoId` names the photo; your own photo is shown instead of `CoverUrl`.
 - **Upload:** photos attached to a saved book upload to `libraries/{libraryId}/covers/{photoId}.jpg` when online (`PhotoService`).

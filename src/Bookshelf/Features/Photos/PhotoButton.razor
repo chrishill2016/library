@@ -10,13 +10,17 @@
 <span class="photo-buttons">
     <MudButton HtmlTag="label" for="@_cameraId" Variant="@Variant" Color="Color.Primary" Size="@Size"
                StartIcon="@Icons.Material.Filled.PhotoCamera" Disabled="_busy" data-testid="photo-button">
-        @(_busy ? "Saving photo…" : Label)
+        @(_busy ? "Opening photo…" : Label)
     </MudButton>
     <MudTooltip Text="Choose from gallery">
         <MudIconButton HtmlTag="label" for="@_galleryId" Icon="@Icons.Material.Filled.PhotoLibrary" Color="Color.Primary"
                        Size="@Size" Disabled="_busy" aria-label="Choose from gallery" data-testid="gallery-button" />
     </MudTooltip>
 </span>
+@if (_draft is { } draft)
+{
+    <CoverCropper Draft="draft" OnDone="OnCroppedAsync" />
+}
 
 @code {
     private readonly string _cameraId = $"photo-{Guid.NewGuid():N}";
@@ -24,12 +28,13 @@
     private ElementReference _camera;
     private ElementReference _gallery;
     private bool _busy;
+    private PhotoDraft? _draft;
 
     [Parameter] public string Label { get; set; } = "Photo";
     [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
     [Parameter] public Size Size { get; set; } = Size.Medium;
 
-    /// <summary>Called with the resized photo, stored on this device but not yet attached to a book.</summary>
+    /// <summary>Called with the cropped photo, stored on this device but not yet attached to a book.</summary>
     [Parameter] public EventCallback<CapturedPhoto> OnCaptured { get; set; }
 
     private async Task OnFileChosenAsync(ElementReference input)
@@ -37,18 +42,24 @@
         _busy = true;
         try
         {
-            if (await Photos.CaptureAsync(input) is { } photo)
-            {
-                await OnCaptured.InvokeAsync(photo);
-            }
+            _draft = await Photos.OpenDraftAsync(input);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Couldn't use that photo: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Couldn't open that photo: {ex.Message}", Severity.Error);
         }
         finally
         {
             _busy = false;
+        }
+    }
+
+    private async Task OnCroppedAsync(CapturedPhoto? photo)
+    {
+        _draft = null;
+        if (photo is not null)
+        {
+            await OnCaptured.InvokeAsync(photo);
         }
     }
 }
