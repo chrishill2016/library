@@ -30,6 +30,13 @@ public sealed class BookService : IDisposable
         return _cache;
     }
 
+    /// <summary>A book already on the shelf with the same ISBN (10 or 13 form), if any.</summary>
+    public async Task<Book?> FindByIsbnAsync(string isbn)
+    {
+        var wanted = Isbn.ToIsbn13(isbn);
+        return wanted is null ? null : (await GetAllAsync()).FirstOrDefault(b => Isbn.ToIsbn13(b.Isbn) == wanted);
+    }
+
     public async Task<Book?> GetAsync(string id)
     {
         var book = await _store.GetBookAsync(id);

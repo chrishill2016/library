@@ -19,5 +19,21 @@ public sealed record Book
     /// <summary>Soft-delete marker so deletions can sync to other devices.</summary>
     public bool IsDeleted { get; init; }
 
+    /// <summary>
+    /// Set when a scanned book was saved by ISBN only (offline or not found yet).
+    /// See <see cref="BookLookupState"/>. Null once details are filled in.
+    /// </summary>
+    public string? LookupState { get; init; }
+
     public static string NewId() => Guid.NewGuid().ToString("N");
+}
+
+/// <summary>Values for <see cref="Book.LookupState"/> (strings so older clients ignore them).</summary>
+public static class BookLookupState
+{
+    /// <summary>Details will be looked up automatically when online.</summary>
+    public const string Pending = "pending";
+
+    /// <summary>Looked up but not found online; needs adding by hand.</summary>
+    public const string NotFound = "notFound";
 }

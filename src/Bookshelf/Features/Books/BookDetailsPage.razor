@@ -18,6 +18,14 @@ else if (_book is null)
 }
 else
 {
+    @if (_book.LookupState is not null)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" data-testid="lookup-banner">
+            @(_book.LookupState == BookLookupState.Pending
+                ? "Saved by ISBN while offline. The details will be filled in automatically when you're online."
+                : "This ISBN wasn't found online. Tap Edit to add the title and author.")
+        </MudAlert>
+    }
     <MudPaper Class="pa-4 tooled-panel" Elevation="3">
         <div class="book-details">
             <BookCover Book="_book" Size="BookCover.CoverSize.Large" />

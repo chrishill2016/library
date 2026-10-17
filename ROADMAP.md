@@ -7,7 +7,11 @@
   - Google sign-in (required) and Firestore sync with a server-time cursor.
   - "The Hill Library" shared by invite.
   - Security rules with emulator tests in CI.
-- [ ] **Phase 3: Scan to add.** Scan ISBN barcodes with the camera using Chrome's `BarcodeDetector` (we're both on Android). Look up details and cover art from Open Library, with Google Books as a fallback. Also **search by title/author** for older books without barcodes.
+- [x] **Phase 3: Scan to add.**
+  - Camera barcode scanning with rapid (undo) and confirm modes, and duplicate warnings.
+  - Google Books + Open Library lookup.
+  - Offline scans filled in automatically later.
+  - Find online by title/author, and covers cached for offline use.
 - [ ] **Phase 4: Cover photos.** Photograph a cover when no artwork is found. Store it in Firebase Storage (we're on the Blaze plan), resized on the device to about 800px JPEG before upload, to keep storage and bandwidth costs small.
 - [ ] **Phase 5: Reviews and reading log.** Personal 1–5 star rating, review and "read on" dates for each of us per book, visible to the other.
 
@@ -19,3 +23,5 @@
 - Owner can remove a member, rename the library, or transfer ownership.
 - Live updates (Firestore listeners) instead of syncing on start, after edits, on reconnect and with "Sync now".
 - Export or backup of the collection (CSV or JSON).
+- Bulk "retry lookup" for books flagged as not found.
+- Barcode scanning on iPhone (needs a JS barcode library, as Safari has no `BarcodeDetector`).

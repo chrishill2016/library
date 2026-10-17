@@ -4,10 +4,12 @@ A family library app for keeping track of the books we own. It's an installable,
 
 **Today:**
 - Sign in with Google, then share one library with family. The owner invites people by email, and they join when they sign in.
+- **Scan to add:** point the camera at the barcode and the book is looked up (title, author, publisher, year, cover) and added. There's a rapid mode with undo and a "confirm each book" mode. Duplicates are flagged, not re-added.
+- **Find online** by title or author for books without a barcode, or look up an ISBN from the add form.
 - Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname or date added.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
 
-See [ROADMAP.md](ROADMAP.md) for what's next (barcode scanning, cover photos, ratings).
+See [ROADMAP.md](ROADMAP.md) for what's next (cover photos, ratings).
 
 ## Stack
 
@@ -23,6 +25,8 @@ See [ROADMAP.md](ROADMAP.md) for what's next (barcode scanning, cover photos, ra
 ```
 src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
+  Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
+  Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
   Features/Account/     AuthService, sign-in screen
   Features/Library/     LibraryService (create, invite, join), setup screen, library settings
   Features/Settings/    Library, sync, theme, account, about
@@ -51,6 +55,19 @@ Every change is written to IndexedDB first, together with an entry in a local **
 The remote is Firestore (`FirestoreRemoteStore`):
 - **Pull cursor:** the newest server-side `syncedAt` seen, so device clocks never matter. Each pull re-reads the last two minutes to catch writes that committed slightly out of order.
 - **When sync runs:** it starts once a signed-in user has a library.
+
+## Scanning and book lookup
+
+- **Scanning** uses the browser's `BarcodeDetector` (Chrome on Android) with the rear camera. Only EAN-13 "Bookland" codes (978/979 with a valid checksum) count, so price barcodes are ignored. Holding a book in view doesn't re-add it.
+- **Lookup** asks Google Books and Open Library in parallel:
+  - Google's details win, and Open Library fills the gaps (often the cover).
+  - A source that's offline or over quota is skipped.
+  - "Not found" is only reported when every source answered.
+- **Offline or unknown books** are saved by ISBN (`LookupState`):
+  - `pending` books are filled in automatically when the app opens or comes back online (`PendingLookupService`).
+  - `notFound` books are flagged on the shelf so you can add details.
+- **Covers** are stored as links. The service worker caches CORS-readable cover images (up to 2,000) so they show offline. API calls bypass the service worker.
+- **Google Books API key:** `BookLookup:GoogleBooksApiKey` in `appsettings.json` (currently the Firebase browser key). The Books API must be enabled in the Google Cloud project, and allowed on that key, or Google requests fail and Open Library is used alone.
 
 ## Accounts and sharing
 
