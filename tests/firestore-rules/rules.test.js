@@ -233,6 +233,12 @@ describe('readings', () => {
             where('syncedAt', '>', Timestamp.fromMillis(0)), orderBy('syncedAt'))));
     });
 
+    it('allows a reading-list position (whole or fractional)', async () => {
+        await seedLibrary();
+        await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS, { status: 'want', queueOrder: 3 })));
+        await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS, { status: 'want', queueOrder: 2.5 })));
+    });
+
     it('allows an empty reading (everything cleared)', async () => {
         await seedLibrary();
         await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS),
@@ -267,6 +273,7 @@ describe('readings', () => {
             { review: 'x'.repeat(10001) },
             { reads: 'often' }, { reads: Array.from({ length: 101 }, () => ({ year: 2000 })) },
             { readerName: 'x'.repeat(201) },
+            { queueOrder: 'first' },
             { extra: true },
             { syncedAt: Timestamp.fromMillis(1) },
         ]) {

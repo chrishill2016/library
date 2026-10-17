@@ -8,6 +8,7 @@ A family library app for keeping track of the books we own. It's an installable,
 - **Find online** by title or author for books without a barcode, or look up an ISBN from the add form.
 - **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). The app guesses where the book is; drag the corners to adjust and it's straightened into a clean cover, shrunk to about 800px. Works offline and syncs to the other phone.
 - **Ratings and reading log:** each of us has our own 1–5 stars, review, status (Want to read / Reading / Read) and the dates we read a book (as exact as we remember: a day, a month or just a year). You see the other person's too.
+- **Reading lists:** each of us has an ordered list of books to read next (drag to reorder; "Start" on the top one). Books we don't own yet can go on it as **wishlist** books, kept off the shelf until "Got it" (or scanning the barcode) moves them across. You can peek at the other person's list.
 - Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname, date added or your rating; filter by your reading status. Books you're reading are pinned at the top.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
 
@@ -29,7 +30,7 @@ src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
   Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
   Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
-  Features/ReadingLog/  ReadingService, ReadingPanel (book page), StarRating
+  Features/ReadingLog/  ReadingService, ReadingPanel (book page), StarRating, ReadingListPage (wwwroot/js/reorder.js)
   Features/Photos/      PhotoService, PhotoButton, CoverCropper, IPhotoStore (wwwroot/js/photos.js, cover-geometry.js)
   Features/Account/     AuthService, sign-in screen
   Features/Library/     LibraryService (create, invite, join), setup screen, library settings
@@ -97,6 +98,8 @@ The remote is Firestore (`FirestoreRemoteStore`):
   - The rules only let you write a document whose id ends in your own uid; everyone in the library can read all of them.
 - **Read dates** are `ReadDate(Year, Month?, Day?)`, shown as "12 March 2015", "March 2015" or "2015". Adding one marks the book Read.
 - **Sync:** readings use the same outbox and last-write-wins pull/push as books. The pull cursor is `"<books>;<readings>"` (server times); an older books-only cursor still works and pulls all readings once.
+- **Reading list:** a book is on your list exactly while its status is "Want to read". `QueueOrder` (a number, smaller = sooner) orders it; moving a book gives it a value between its new neighbours, so only that one document is rewritten (the list is renumbered if the gap runs out). Dragging uses pointer events (`reorder.js`), which work with touch on Android.
+- **Wishlist books** have `Book.OnWishlist`: they're hidden from the shelf except under the "Wishlist" filter, added from Find online ("Wishlist") or `books/new?wishlist=true`, and moved onto the shelf with "Got it" or by scanning their barcode.
 - **Shelf:** shows your own stars and status; filters (All / Reading / Want to read / Read / Not read) and "My rating" sort use your reading. "Read" means marked read or with a read date.
 
 ## Accounts and sharing

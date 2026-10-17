@@ -20,6 +20,7 @@
   - Personal 1–5 stars, review, status (Want to read / Reading / Read) and read dates (day, month or just year) per book, visible to the other person.
   - Shelf shows your stars and status, pins books you're reading, filters by status and sorts by your rating.
   - Rules let each person write only their own reading, with emulator tests.
+  - Reading lists: an ordered "to read next" list each (drag to reorder), with wishlist books we don't own yet.
 
 ## Later / ideas
 

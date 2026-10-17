@@ -96,6 +96,7 @@ else
         (ReadingFilter.WantToRead, "Want to read"),
         (ReadingFilter.Read, "Read"),
         (ReadingFilter.NotRead, "Not read"),
+        (ReadingFilter.Wishlist, "Wishlist"),
     ];
 
     private IReadOnlyList<Book>? _all;
@@ -111,15 +112,21 @@ else
 
     private string NoMatchesMessage => (_query.Trim(), _filter) switch
     {
+        ("", ReadingFilter.All) => "Nothing on the shelf yet, only wishlist books.",
+        ("", ReadingFilter.Wishlist) => "Nothing on the wishlist. Add books you'd like from “Find online”.",
         ("", var f) => $"No books marked “{Filters.First(x => x.Filter == f).Label}”.",
         (var q, ReadingFilter.All) => $"No books match “{q}”.",
         (var q, var f) => $"No “{Filters.First(x => x.Filter == f).Label}” books match “{q}”.",
     };
 
+    private int ShelfCount => _all!.Count(b => !b.OnWishlist);
+
     private string CountLabel =>
-        _visible.Count == _all!.Count
-            ? $"{_all.Count} {(_all.Count == 1 ? "volume" : "volumes")}"
-            : $"{_visible.Count} of {_all.Count} volumes";
+        _filter == ReadingFilter.Wishlist
+            ? $"{_visible.Count} on the wishlist"
+            : _visible.Count == ShelfCount
+                ? $"{ShelfCount} {(ShelfCount == 1 ? "volume" : "volumes")}"
+                : $"{_visible.Count} of {ShelfCount} volumes";
 
     protected override async Task OnInitializedAsync()
     {

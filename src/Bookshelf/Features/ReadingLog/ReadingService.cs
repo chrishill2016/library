@@ -79,6 +79,7 @@ public sealed class ReadingService : IDisposable
         return UpdateAsync(bookId, r => r with { Rating = rating });
     }
 
+    /// <summary>Sets the status. "Want to read" puts the book at the end of the reading list; anything else takes it off.</summary>
     public Task<Reading> SetStatusAsync(string bookId, string? status)
     {
         if (status is not (null or ReadingStatus.WantToRead or ReadingStatus.Reading or ReadingStatus.Read))
@@ -87,6 +88,77 @@ public sealed class ReadingService : IDisposable
         }
 
         return UpdateAsync(bookId, r => r with { Status = status });
+    }
+
+    /// <summary>The person's reading list (want-to-read books), soonest first.</summary>
+    public async Task<IReadOnlyList<Reading>> GetQueueAsync(string uid) =>
+        [.. (await GetAllAsync())
+            .Where(r => r.Uid == uid && r.IsQueued)
+            .OrderBy(r => r.QueueOrder ?? double.MaxValue)
+            .ThenBy(r => r.LastModified)];
+
+    /// <summary>Other people who have something on their reading list: (uid, name).</summary>
+    public async Task<IReadOnlyList<(string Uid, string Name)>> GetOtherListsAsync()
+    {
+        var uid = MyUid;
+        return [.. (await GetAllAsync())
+            .Where(r => r.Uid != uid && r.IsQueued)
+            .GroupBy(r => r.Uid)
+            .Select(g => (g.Key, g.OrderByDescending(r => r.LastModified).First().ReaderName))
+            .OrderBy(x => x.ReaderName, StringComparer.CurrentCultureIgnoreCase)];
+    }
+
+    /// <summary>Moves a book on my reading list to a new position (0 = next to read).</summary>
+    public async Task MoveInQueueAsync(string bookId, int toIndex)
+    {
+        var queue = (await GetQueueAsync(RequireUser().Uid)).ToList();
+        var from = queue.FindIndex(r => r.BookId == bookId);
+        if (from < 0)
+        {
+            return;
+        }
+
+        var moving = queue[from];
+        queue.RemoveAt(from);
+        toIndex = Math.Clamp(toIndex, 0, queue.Count);
+        if (toIndex == from)
+        {
+            return;
+        }
+
+        var before = toIndex > 0 ? queue[toIndex - 1].QueueOrder : null;
+        var after = toIndex < queue.Count ? queue[toIndex].QueueOrder : null;
+        var order = (before, after) switch
+        {
+            (null, null) when queue.Count == 0 => 1,
+            ({ } b, { } a) when a - b > 1e-6 => (a + b) / 2,
+            ({ } b, null) when toIndex == queue.Count => b + 1,
+            (null, { } a) when toIndex == 0 => a - 1,
+            _ => (double?)null,
+        };
+
+        if (order is { } value)
+        {
+            await UpdateAsync(bookId, r => r with { QueueOrder = value });
+            return;
+        }
+
+        // Positions too close together (or missing): renumber the whole list.
+        queue.Insert(toIndex, moving);
+        for (var i = 0; i < queue.Count; i++)
+        {
+            var position = i + 1;
+            if (queue[i].QueueOrder != position)
+            {
+                await UpdateAsync(queue[i].BookId, r => r with { QueueOrder = position });
+            }
+        }
+    }
+
+    private async Task<double> EndOfQueueAsync()
+    {
+        var uid = MyUid;
+        return uid is null ? 1 : (await GetQueueAsync(uid)).Select(r => r.QueueOrder ?? 0).DefaultIfEmpty(0).Max() + 1;
     }
 
     public Task<Reading> SetReviewAsync(string bookId, string? review)
@@ -135,6 +207,8 @@ public sealed class ReadingService : IDisposable
         {
             ReaderName = user.Name,
             Reads = [.. changed.Reads.OrderDescending()],
+            // On the reading list exactly while "want to read"; newly wanted books go to the end.
+            QueueOrder = !changed.IsQueued ? null : changed.QueueOrder ?? await EndOfQueueAsync(),
             LastModified = _time.GetUtcNow(),
         };
 

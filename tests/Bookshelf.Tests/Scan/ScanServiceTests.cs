@@ -161,4 +161,17 @@ public class ScanServiceTests
         Assert.Empty(await _books.GetAllAsync());
         Assert.True(Assert.Single(_store.Books.Values).IsDeleted);
     }
+
+    [Fact]
+    public async Task Scanning_a_wishlist_book_moves_it_onto_the_shelf()
+    {
+        await _books.SaveAsync(TestBooks.Make("w", "The Hobbit") with { Isbn = Hobbit, OnWishlist = true });
+
+        var item = await _sut.HandleAsync(Hobbit, confirmEach: true);
+
+        Assert.Equal(ScanStatus.MovedFromWishlist, item!.Status);
+        Assert.False(_store.Books["w"].OnWishlist);
+        Assert.Single(_store.Books);
+        Assert.False(item.IsAdded);
+    }
 }

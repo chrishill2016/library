@@ -19,6 +19,13 @@
             }
         </div>
 
+        @if (_queuePosition is { } position)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3" data-testid="queue-position">
+                @(position == 1 ? "Next up" : $"Number {position}") on <MudLink Href="reading-list">your reading list</MudLink>.
+            </MudText>
+        }
+
         <div class="reading-row mb-3">
             <MudText Typo="Typo.body2" Class="reading-label">Your rating</MudText>
             <StarRating Value="_mine.Rating" ValueChanged="SetRatingAsync" Disabled="_busy" Label="Your rating" TestId="my-rating" />
@@ -122,12 +129,13 @@
 @code {
     private static readonly (string Status, string Label)[] Statuses =
     [
-        (ReadingStatus.WantToRead, "Want to read"),
+        (ReadingStatus.WantToRead, "Want to read"),  // = on the reading list
         (ReadingStatus.Reading, "Reading"),
         (ReadingStatus.Read, "Read"),
     ];
 
     private Reading? _mine;
+    private int? _queuePosition;
     private IReadOnlyList<Reading> _others = [];
     private string? _review;
     private bool _busy;
@@ -158,13 +166,28 @@
         var keepDraft = !resetReview && ReviewChanged;
         _mine = await Readings.GetMyReadingAsync(BookId);
         _others = await Readings.GetOthersAsync(BookId);
+        await LoadQueuePositionAsync();
         if (!keepDraft)
         {
             _review = _mine.Review;
         }
     }
 
-    private Task SetStatusAsync(string? status) => SaveAsync(() => Readings.SetStatusAsync(BookId, status));
+    private async Task SetStatusAsync(string? status)
+    {
+        if (await SaveAsync(() => Readings.SetStatusAsync(BookId, status)))
+        {
+            await LoadQueuePositionAsync();
+        }
+    }
+
+    private async Task LoadQueuePositionAsync()
+    {
+        var index = _mine?.IsQueued == true
+            ? (await Readings.GetQueueAsync(_mine.Uid)).Select(r => r.BookId).ToList().IndexOf(BookId)
+            : -1;
+        _queuePosition = index >= 0 ? index + 1 : null;
+    }
 
     private Task SetRatingAsync(int? rating) => SaveAsync(() => Readings.SetRatingAsync(BookId, rating));
 

@@ -115,4 +115,14 @@ public class BookSearchTests
         Assert.Equal(["3"], BookSearch.FilterByReading(books, ReadingFilter.Reading, Mine).Select(b => b.Id));
         Assert.Equal(4, BookSearch.FilterByReading(books, ReadingFilter.All, Mine).Count());
     }
+
+    [Fact]
+    public void Wishlist_books_only_show_under_the_wishlist_filter()
+    {
+        Book[] books = [TestBooks.Make("owned"), TestBooks.Make("wanted") with { OnWishlist = true }];
+
+        Assert.Equal(["owned"], BookSearch.FilterByReading(books, ReadingFilter.All, _ => null).Select(b => b.Id));
+        Assert.Equal(["owned"], BookSearch.FilterByReading(books, ReadingFilter.NotRead, _ => null).Select(b => b.Id));
+        Assert.Equal(["wanted"], BookSearch.FilterByReading(books, ReadingFilter.Wishlist, _ => null).Select(b => b.Id));
+    }
 }

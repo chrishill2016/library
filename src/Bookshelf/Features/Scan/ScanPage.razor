@@ -102,6 +102,9 @@ else if (_supported == false)
                             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => AddCopyAsync(item)" data-testid="scan-add-copy">Add another copy</MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{item.Book!.Id}")">View</MudButton>
                             break;
+                        case ScanStatus.MovedFromWishlist:
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{item.Book!.Id}")">View</MudButton>
+                            break;
                         case ScanStatus.Added:
                         case ScanStatus.AddedPending:
                         case ScanStatus.AddedNotFound:
@@ -274,6 +277,7 @@ else if (_supported == false)
         ScanStatus.NotFound when item.Offline => "You're offline. Add now and the details will be filled in later.",
         ScanStatus.NotFound => "Not found online. Add by ISBN and fill in the details later.",
         ScanStatus.Duplicate => "Already on the shelf",
+        ScanStatus.MovedFromWishlist => "Was on the wishlist. Moved onto the shelf",
         ScanStatus.Skipped => "Skipped",
         ScanStatus.Undone => "Removed",
         _ => "",

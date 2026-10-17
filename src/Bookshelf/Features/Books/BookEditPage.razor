@@ -5,6 +5,7 @@
 @inject ISnackbar Snackbar
 @inject IBookLookup Lookup
 @inject Bookshelf.Features.Photos.PhotoService Photos
+@inject Bookshelf.Features.ReadingLog.ReadingService Readings
 
 <PageTitle>@(IsNew ? "Add a book" : "Edit book") · Bookshelf</PageTitle>
 
@@ -48,6 +49,11 @@ else
                                  Min="1000" Max="2100" HideSpinButtons="true" data-testid="year" />
             </div>
             <MudTextField @bind-Value="_form.Publisher" Label="Publisher" Variant="Variant.Outlined" Class="mb-3" />
+            @if (_form.IsNew)
+            {
+                <MudSwitch T="bool" @bind-Value="_form.OnWishlist" Color="Color.Primary" Class="mb-3" data-testid="wishlist-switch"
+                           Label="Not on the shelf yet: add to my reading list as a wishlist book" />
+            }
             <div class="edit-cover mb-3">
                 <BookCover Book="@_form.ToBook()" />
                 <div class="edit-cover-actions">
@@ -79,6 +85,9 @@ else
     private bool _notFound;
 
     [Parameter] public string? Id { get; set; }
+
+    /// <summary><c>books/new?wishlist=true</c> starts the form as a wishlist book.</summary>
+    [SupplyParameterFromQuery] public bool Wishlist { get; set; }
 
     private bool IsNew => string.IsNullOrEmpty(Id);
 
@@ -113,7 +122,7 @@ else
     {
         if (IsNew)
         {
-            _form = new BookForm();
+            _form = new BookForm { OnWishlist = Wishlist };
             return;
         }
 
@@ -140,9 +149,17 @@ else
         }
 
         _saving = true;
+        var isNewWishlist = _form!.IsNew && _form.OnWishlist;
         var saved = await Books.SaveAsync(_form!.ToBook());
+        if (isNewWishlist && Readings.MyUid is not null)
+        {
+            await Readings.SetStatusAsync(saved.Id, ReadingStatus.WantToRead);
+        }
+
         await Photos.PhotoChangedAsync(previous: _form.OriginalPhotoId, current: saved.PhotoId);
-        Snackbar.Add(IsNew ? $"Added “{saved.Title}” to the shelf." : "Saved.", Severity.Success);
+        Snackbar.Add(!IsNew ? "Saved."
+            : isNewWishlist ? $"Added “{saved.Title}” to your reading list."
+            : $"Added “{saved.Title}” to the shelf.", Severity.Success);
         Nav.NavigateTo($"books/{saved.Id}", replace: true);
     }
 }

@@ -169,4 +169,88 @@ public class ReadingServiceTests : IAsyncLifetime
         Assert.True(changed >= 1);
         Assert.Single(await _sut.GetAllAsync());
     }
+
+    private async Task<string[]> QueueAsync() => [.. (await _sut.GetQueueAsync("chris")).Select(r => r.BookId)];
+
+    [Fact]
+    public async Task Want_to_read_appends_to_the_list_and_other_statuses_take_it_off()
+    {
+        await _sut.SetStatusAsync("a", ReadingStatus.WantToRead);
+        await _sut.SetStatusAsync("b", ReadingStatus.WantToRead);
+        await _sut.SetStatusAsync("c", ReadingStatus.WantToRead);
+        Assert.Equal(["a", "b", "c"], await QueueAsync());
+
+        await _sut.SetStatusAsync("a", ReadingStatus.Reading);
+        await _sut.AddReadAsync("b", new ReadDate(2020));
+        Assert.Equal(["c"], await QueueAsync());
+        Assert.Null(_store.Readings["a_chris"].QueueOrder);
+
+        await _sut.SetStatusAsync("a", ReadingStatus.WantToRead);
+        Assert.Equal(["c", "a"], await QueueAsync());
+    }
+
+    [Fact]
+    public async Task Moving_rewrites_only_the_moved_book()
+    {
+        foreach (var id in new[] { "a", "b", "c", "d" })
+        {
+            await _sut.SetStatusAsync(id, ReadingStatus.WantToRead);
+        }
+
+        var before = _store.Readings.ToDictionary(r => r.Key, r => r.Value.LastModified);
+        _time.Advance(TimeSpan.FromMinutes(1));
+
+        await _sut.MoveInQueueAsync("d", 1);
+
+        Assert.Equal(["a", "d", "b", "c"], await QueueAsync());
+        Assert.Equal(["d_chris"], _store.Readings.Where(r => r.Value.LastModified != before[r.Key]).Select(r => r.Key));
+    }
+
+    [Theory]
+    [InlineData("c", 0, new[] { "c", "a", "b" })]
+    [InlineData("a", 2, new[] { "b", "c", "a" })]
+    [InlineData("a", 99, new[] { "b", "c", "a" })]
+    [InlineData("b", 1, new[] { "a", "b", "c" })]
+    public async Task Moves_to_top_bottom_and_stays_put(string book, int to, string[] expected)
+    {
+        foreach (var id in new[] { "a", "b", "c" })
+        {
+            await _sut.SetStatusAsync(id, ReadingStatus.WantToRead);
+        }
+
+        await _sut.MoveInQueueAsync(book, to);
+
+        Assert.Equal(expected, await QueueAsync());
+    }
+
+    [Fact]
+    public async Task Many_moves_into_the_same_gap_renumber_the_list_when_needed()
+    {
+        foreach (var id in new[] { "a", "b", "c" })
+        {
+            await _sut.SetStatusAsync(id, ReadingStatus.WantToRead);
+        }
+
+        // Keep squeezing alternate books between the first two until the gap runs out.
+        for (var i = 0; i < 60; i++)
+        {
+            var queue = await QueueAsync();
+            await _sut.MoveInQueueAsync(queue[2], 1);
+        }
+
+        Assert.Equal(3, (await QueueAsync()).Distinct().Count());
+        Assert.All(_store.Readings.Values, r => Assert.NotNull(r.QueueOrder));
+    }
+
+    [Fact]
+    public async Task Other_peoples_lists_are_listed_by_name()
+    {
+        await _store.PutReadingAsync(TestReadings.Make("a", "wife", status: ReadingStatus.WantToRead, name: "Sarah") with { QueueOrder = 2 });
+        await _store.PutReadingAsync(TestReadings.Make("b", "wife", status: ReadingStatus.WantToRead, name: "Sarah") with { QueueOrder = 1 });
+        await _store.PutReadingAsync(TestReadings.Make("c", "lodger", status: ReadingStatus.Read, name: "Lodger"));
+        await _sut.SetStatusAsync("a", ReadingStatus.WantToRead);
+
+        Assert.Equal([("wife", "Sarah")], await _sut.GetOtherListsAsync());
+        Assert.Equal(["b", "a"], (await _sut.GetQueueAsync("wife")).Select(r => r.BookId));
+    }
 }

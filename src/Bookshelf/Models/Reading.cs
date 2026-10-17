@@ -24,6 +24,12 @@ public sealed record Reading
     /// <summary>See <see cref="ReadingStatus"/>; null when not set.</summary>
     public string? Status { get; init; }
 
+    /// <summary>
+    /// Position on this person's reading list (smaller is sooner). Set while the status is
+    /// <see cref="ReadingStatus.WantToRead"/>; fractional so a move rewrites only the moved book.
+    /// </summary>
+    public double? QueueOrder { get; init; }
+
     /// <summary>When it was read (newest first); re-reads add another.</summary>
     public IReadOnlyList<ReadDate> Reads { get; init; } = [];
 
@@ -35,6 +41,9 @@ public sealed record Reading
     // Computed properties are not stored: firestore.rules accepts only the fields above.
     [JsonIgnore]
     public bool IsEmpty => Rating is null && Review is null && Status is null && Reads.Count == 0;
+
+    [JsonIgnore]
+    public bool IsQueued => Status == ReadingStatus.WantToRead;
 
     /// <summary>Finished at least once: marked as read or has a read date.</summary>
     [JsonIgnore]

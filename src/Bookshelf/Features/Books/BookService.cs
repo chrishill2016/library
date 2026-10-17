@@ -23,7 +23,7 @@ public sealed class BookService : IDisposable
     /// <summary>Raised when the set of books changes locally or from sync.</summary>
     public event Action? Changed;
 
-    /// <summary>All books that have not been deleted.</summary>
+    /// <summary>All books that have not been deleted, including wishlist books (see <see cref="Book.OnWishlist"/>).</summary>
     public async Task<IReadOnlyList<Book>> GetAllAsync()
     {
         _cache ??= [.. (await _store.GetBooksAsync()).Where(b => !b.IsDeleted)];
@@ -63,6 +63,17 @@ public sealed class BookService : IDisposable
 
         await WriteAsync(saved);
         return saved;
+    }
+
+    /// <summary>A wishlist book has been bought or borrowed: it joins the shelf.</summary>
+    public async Task<Book?> MoveToShelfAsync(string id)
+    {
+        if (await GetAsync(id) is not { OnWishlist: true } book)
+        {
+            return null;
+        }
+
+        return await SaveAsync(book with { OnWishlist = false });
     }
 
     public async Task DeleteAsync(string id)

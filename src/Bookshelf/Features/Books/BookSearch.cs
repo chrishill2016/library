@@ -20,6 +20,9 @@ public enum ReadingFilter
     WantToRead,
     Read,
     NotRead,
+
+    /// <summary>Books we want but don't own yet (the only filter that shows them).</summary>
+    Wishlist,
 }
 
 /// <summary>In-memory search; plenty fast for a few thousand books.</summary>
@@ -64,15 +67,25 @@ public static class BookSearch
     /// <summary>
     /// Keeps books matching the signed-in person's reading. "Read" means marked read or with a read date;
     /// "Not read" is everything else (including want-to-read and currently reading).
+    /// Wishlist books (not owned yet) only appear under <see cref="ReadingFilter.Wishlist"/>.
     /// </summary>
-    public static IEnumerable<Book> FilterByReading(IEnumerable<Book> books, ReadingFilter filter, Func<Book, Reading?> mine) => filter switch
+    public static IEnumerable<Book> FilterByReading(IEnumerable<Book> books, ReadingFilter filter, Func<Book, Reading?> mine)
     {
-        ReadingFilter.Reading => books.Where(b => mine(b)?.Status == ReadingStatus.Reading),
-        ReadingFilter.WantToRead => books.Where(b => mine(b)?.Status == ReadingStatus.WantToRead),
-        ReadingFilter.Read => books.Where(b => mine(b)?.HasRead == true),
-        ReadingFilter.NotRead => books.Where(b => mine(b)?.HasRead != true),
-        _ => books,
-    };
+        if (filter == ReadingFilter.Wishlist)
+        {
+            return books.Where(b => b.OnWishlist);
+        }
+
+        var shelf = books.Where(b => !b.OnWishlist);
+        return filter switch
+        {
+            ReadingFilter.Reading => shelf.Where(b => mine(b)?.Status == ReadingStatus.Reading),
+            ReadingFilter.WantToRead => shelf.Where(b => mine(b)?.Status == ReadingStatus.WantToRead),
+            ReadingFilter.Read => shelf.Where(b => mine(b)?.HasRead == true),
+            ReadingFilter.NotRead => shelf.Where(b => mine(b)?.HasRead != true),
+            _ => shelf,
+        };
+    }
 
     /// <summary>Library-style title key: "The Hobbit" files under H.</summary>
     public static string TitleSortKey(string title)

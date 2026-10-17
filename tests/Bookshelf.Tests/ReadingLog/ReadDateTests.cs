@@ -45,7 +45,7 @@ public class ReadingSerializationTests
         var json = System.Text.Json.JsonSerializer.SerializeToElement(reading, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 
         Assert.Equal(
-            ["bookId", "id", "lastModified", "rating", "readerName", "reads", "review", "status", "uid"],
+            ["bookId", "id", "lastModified", "queueOrder", "rating", "readerName", "reads", "review", "status", "uid"],
             json.EnumerateObject().Select(p => p.Name).Order());
         Assert.Equal(["day", "month", "year"], json.GetProperty("reads")[0].EnumerateObject().Select(p => p.Name).Order());
     }

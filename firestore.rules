@@ -93,7 +93,7 @@ service cloud.firestore {
       // because the document id must end with their uid.
       match /readings/{readingId} {
         function validReading(data) {
-          return data.keys().hasOnly(['id', 'bookId', 'uid', 'readerName', 'rating', 'review', 'status', 'reads', 'lastModified', 'syncedAt'])
+          return data.keys().hasOnly(['id', 'bookId', 'uid', 'readerName', 'rating', 'review', 'status', 'reads', 'queueOrder', 'lastModified', 'syncedAt'])
             && data.id == readingId
             && data.uid == request.auth.uid
             && data.bookId is string
@@ -102,6 +102,7 @@ service cloud.firestore {
             && (data.get('rating', null) == null || (data.rating is int && data.rating >= 1 && data.rating <= 5))
             && (data.get('review', null) == null || (data.review is string && data.review.size() <= 10000))
             && (data.get('status', null) == null || data.status in ['want', 'reading', 'read'])
+            && (data.get('queueOrder', null) == null || data.queueOrder is number)
             && data.reads is list && data.reads.size() <= 100
             && data.syncedAt == request.time;
         }

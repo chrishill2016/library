@@ -28,6 +28,12 @@ public sealed record Book
     /// </summary>
     public string? LookupState { get; init; }
 
+    /// <summary>
+    /// Wanted but not owned yet (to buy or borrow): kept off the shelf and shown on reading lists.
+    /// False for older books, which are all owned.
+    /// </summary>
+    public bool OnWishlist { get; init; }
+
     public static string NewId() => Guid.NewGuid().ToString("N");
 }
 
