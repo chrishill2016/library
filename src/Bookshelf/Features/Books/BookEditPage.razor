@@ -7,7 +7,7 @@
 
 <PageTitle>@(IsNew ? "Add a book" : "Edit book") · Bookshelf</PageTitle>
 
-<MudButton Href="@(IsNew ? "" : $"books/{Id}")" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">Back</MudButton>
+<MudButton Href="@BackHref" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">Back</MudButton>
 
 @if (_form is null)
 {
@@ -30,8 +30,11 @@ else
                 Quicker: <MudLink Href="scan">scan the barcode</MudLink> or <MudLink Href="find">find it online</MudLink>.
             </MudText>
         }
-        <MudForm @ref="_mudForm" @bind-IsValid="_isValid">
-            <MudTextField @bind-Value="_form.Title" Label="Title" Required="true" RequiredError="Every book needs a title."
+        @* The title is only checked on Save: checking on blur showed the error (and shifted
+           the layout) when tapping Back or Cancel, so the tap missed the button. *@
+        <MudForm>
+            <MudTextField T="string" Value="_form.Title" ValueChanged="OnTitleChanged" Label="Title" Immediate="true"
+                          Error="_titleMissing" ErrorText="Every book needs a title."
                           Variant="Variant.Outlined" Class="mb-3" AutoFocus="@IsNew" data-testid="title" />
             <MudTextField @bind-Value="_form.Author" Label="Author" Variant="Variant.Outlined" Class="mb-3"
                           HelperText="Separate several authors with “&”." data-testid="author" />
@@ -49,7 +52,7 @@ else
             <MudTextField @bind-Value="_form.Notes" Label="Notes" Variant="Variant.Outlined" Lines="3" Sizing="InputSizing.Auto" Class="mb-3" />
         </MudForm>
         <div class="d-flex gap-2 justify-end">
-            <MudButton Variant="Variant.Text" Href="@(IsNew ? "" : $"books/{Id}")">Cancel</MudButton>
+            <MudButton Variant="Variant.Text" Href="@BackHref">Cancel</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
                        StartIcon="@Icons.Material.Filled.Save" data-testid="save">Save</MudButton>
         </div>
@@ -58,14 +61,16 @@ else
 
 @code {
     private BookForm? _form;
-    private MudForm? _mudForm;
-    private bool _isValid;
+    private bool _titleMissing;
     private bool _saving;
     private bool _notFound;
 
     [Parameter] public string? Id { get; set; }
 
     private bool IsNew => string.IsNullOrEmpty(Id);
+
+    // "./" (the shelf), not "": MudButton treats an empty Href as "not a link" and does nothing.
+    private string BackHref => IsNew ? "./" : $"books/{Id}";
 
     private async Task LookUpIsbnAsync()
     {
@@ -104,11 +109,20 @@ else
         _form = book is null ? null : BookForm.From(book);
     }
 
+    private void OnTitleChanged(string? value)
+    {
+        _form!.Title = value ?? "";
+        if (_titleMissing && !string.IsNullOrWhiteSpace(value))
+        {
+            _titleMissing = false;
+        }
+    }
+
     private async Task SaveAsync()
     {
-        await _mudForm!.ValidateAsync();
-        if (!_isValid)
+        if (string.IsNullOrWhiteSpace(_form!.Title))
         {
+            _titleMissing = true;
             return;
         }
 
