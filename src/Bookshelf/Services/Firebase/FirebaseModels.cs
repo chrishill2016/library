@@ -47,3 +47,6 @@ public sealed record LibraryInfo(
 
 /// <summary>A book as read from Firestore, with its server write time.</summary>
 public sealed record RemoteBook(Book Book, long SyncedAt);
+
+/// <summary>A reading as read from Firestore, with its server write time.</summary>
+public sealed record RemoteReading(Reading Reading, long SyncedAt);

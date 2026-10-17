@@ -73,6 +73,7 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" Href="@($"books/{_book.Id}/edit")">Edit</MudButton>
         </div>
     </MudPaper>
+    <ReadingPanel BookId="@_book.Id" />
 }
 
 @code {

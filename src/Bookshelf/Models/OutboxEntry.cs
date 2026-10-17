@@ -7,7 +7,11 @@ namespace Bookshelf.Models;
 public sealed record OutboxEntry(string Id, string EntityType, string EntityId, DateTimeOffset QueuedAt)
 {
     public const string BookType = "book";
+    public const string ReadingType = "reading";
 
     public static OutboxEntry ForBook(string bookId, DateTimeOffset queuedAt) =>
         new($"{BookType}:{bookId}", BookType, bookId, queuedAt);
+
+    public static OutboxEntry ForReading(string readingId, DateTimeOffset queuedAt) =>
+        new($"{ReadingType}:{readingId}", ReadingType, readingId, queuedAt);
 }

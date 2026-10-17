@@ -85,4 +85,34 @@ public class BookSearchTests
     [InlineData("The", "The")]
     public void Title_sort_key(string title, string expected) =>
         Assert.Equal(expected, BookSearch.TitleSortKey(title));
+
+    [Fact]
+    public void Sorts_by_my_rating_highest_first_with_unrated_last()
+    {
+        Book[] books = [TestBooks.Make("1", "Unrated"), TestBooks.Make("2", "Three"), TestBooks.Make("3", "Five"), TestBooks.Make("4", "Also three")];
+        var ratings = new Dictionary<string, int> { ["2"] = 3, ["3"] = 5, ["4"] = 3 };
+
+        var sorted = BookSearch.Sort(books, BookSort.MyRating,
+            b => ratings.TryGetValue(b.Id, out var r) ? TestReadings.Make(b.Id, "me", rating: r) : null);
+
+        Assert.Equal(["Five", "Also three", "Three", "Unrated"], sorted.Select(b => b.Title));
+    }
+
+    [Fact]
+    public void Read_filter_counts_read_dates_or_read_status()
+    {
+        Book[] books = [TestBooks.Make("1"), TestBooks.Make("2"), TestBooks.Make("3"), TestBooks.Make("4")];
+        var mine = new Dictionary<string, Reading>
+        {
+            ["1"] = TestReadings.Make("1", "me", status: ReadingStatus.Read),
+            ["2"] = TestReadings.Make("2", "me", reads: new ReadDate(2001)),
+            ["3"] = TestReadings.Make("3", "me", status: ReadingStatus.Reading),
+        };
+        Reading? Mine(Book b) => mine.GetValueOrDefault(b.Id);
+
+        Assert.Equal(["1", "2"], BookSearch.FilterByReading(books, ReadingFilter.Read, Mine).Select(b => b.Id));
+        Assert.Equal(["3", "4"], BookSearch.FilterByReading(books, ReadingFilter.NotRead, Mine).Select(b => b.Id));
+        Assert.Equal(["3"], BookSearch.FilterByReading(books, ReadingFilter.Reading, Mine).Select(b => b.Id));
+        Assert.Equal(4, BookSearch.FilterByReading(books, ReadingFilter.All, Mine).Count());
+    }
 }

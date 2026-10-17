@@ -32,4 +32,8 @@ public interface IFirebaseClient
     Task<IReadOnlyList<RemoteBook>> GetBookChangesAsync(string libraryId, long? sinceMillis);
 
     Task PutBooksAsync(string libraryId, IReadOnlyList<Book> books);
+
+    Task<IReadOnlyList<RemoteReading>> GetReadingChangesAsync(string libraryId, long? sinceMillis);
+
+    Task PutReadingsAsync(string libraryId, IReadOnlyList<Reading> readings);
 }

@@ -1,6 +1,7 @@
 @page "/"
 @implements IDisposable
 @inject BookService Books
+@inject ReadingService Readings
 
 <PageTitle>Bookshelf</PageTitle>
 
@@ -22,8 +23,21 @@
         <MudSelectItem Value="BookSort.Title">Title</MudSelectItem>
         <MudSelectItem Value="BookSort.Author">Author</MudSelectItem>
         <MudSelectItem Value="BookSort.RecentlyAdded">Recently added</MudSelectItem>
+        <MudSelectItem Value="BookSort.MyRating">My rating</MudSelectItem>
     </MudSelect>
 </div>
+
+@if (_all is { Count: > 0 })
+{
+    <div class="filter-chips" role="group" aria-label="Show">
+        @foreach (var (filter, label) in Filters)
+        {
+            var selected = _filter == filter;
+            <button type="button" class="filter-chip @(selected ? "selected" : null)" aria-pressed="@(selected ? "true" : "false")"
+                    @onclick="() => OnFilterChanged(filter)" data-testid="@($"filter-{filter}")">@label</button>
+        }
+    </div>
+}
 
 @if (_all is null)
 {
@@ -44,13 +58,27 @@ else if (_all.Count == 0)
 }
 else if (_visible.Count == 0)
 {
-    <MudText Typo="Typo.body1" Class="mt-6 text-center">No books match “@_query”.</MudText>
+    <MudText Typo="Typo.body1" Class="mt-6 text-center" data-testid="no-matches">@NoMatchesMessage</MudText>
 }
 else
 {
+    @if (_readingNow.Count > 0)
+    {
+        <MudText Typo="Typo.overline" HtmlTag="h2" Class="shelf-section">Reading now</MudText>
+        <div class="book-list mb-3" data-testid="reading-now">
+            @foreach (var book in _readingNow)
+            {
+                <BookListItem @key="book.Id" Book="book" Mine="Mine(book)" />
+            }
+        </div>
+        @if (_rest.Count > 0)
+        {
+            <MudText Typo="Typo.overline" HtmlTag="h2" Class="shelf-section">On the shelf</MudText>
+        }
+    }
     <div class="book-list" data-testid="book-list">
-        <Virtualize Items="_visible" Context="book" ItemSize="96" OverscanCount="8">
-            <BookListItem @key="book.Id" Book="book" />
+        <Virtualize Items="_rest" Context="book" ItemSize="96" OverscanCount="8">
+            <BookListItem @key="book.Id" Book="book" Mine="Mine(book)" />
         </Virtualize>
     </div>
 }
@@ -61,10 +89,32 @@ else
 </div>
 
 @code {
+    private static readonly (ReadingFilter Filter, string Label)[] Filters =
+    [
+        (ReadingFilter.All, "All"),
+        (ReadingFilter.Reading, "Reading"),
+        (ReadingFilter.WantToRead, "Want to read"),
+        (ReadingFilter.Read, "Read"),
+        (ReadingFilter.NotRead, "Not read"),
+    ];
+
     private IReadOnlyList<Book>? _all;
+    private IReadOnlyDictionary<string, Reading> _mine = new Dictionary<string, Reading>();
     private List<Book> _visible = [];
+    private List<Book> _readingNow = [];
+    private List<Book> _rest = [];
     private string _query = "";
     private BookSort _sort = BookSort.Title;
+    private ReadingFilter _filter = ReadingFilter.All;
+
+    private Reading? Mine(Book book) => _mine.GetValueOrDefault(book.Id);
+
+    private string NoMatchesMessage => (_query.Trim(), _filter) switch
+    {
+        ("", var f) => $"No books marked “{Filters.First(x => x.Filter == f).Label}”.",
+        (var q, ReadingFilter.All) => $"No books match “{q}”.",
+        (var q, var f) => $"No “{Filters.First(x => x.Filter == f).Label}” books match “{q}”.",
+    };
 
     private string CountLabel =>
         _visible.Count == _all!.Count
@@ -74,16 +124,31 @@ else
     protected override async Task OnInitializedAsync()
     {
         Books.Changed += OnBooksChanged;
+        Readings.Changed += OnBooksChanged;
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _all = await Books.GetAllAsync();
+        _mine = await Readings.GetMyReadingsAsync();
         Apply();
     }
 
-    private void Apply() => _visible = [.. BookSearch.Sort(BookSearch.Filter(_all ?? [], _query), _sort)];
+    private void Apply()
+    {
+        var matching = BookSearch.FilterByReading(BookSearch.Filter(_all ?? [], _query), _filter, Mine);
+        _visible = [.. BookSearch.Sort(matching, _sort, Mine)];
+        // On the full shelf, books being read now are pinned at the top.
+        _readingNow = _filter == ReadingFilter.All ? [.. _visible.Where(b => Mine(b)?.Status == ReadingStatus.Reading)] : [];
+        _rest = _readingNow.Count == 0 ? _visible : [.. _visible.Except(_readingNow)];
+    }
+
+    private void OnFilterChanged(ReadingFilter filter)
+    {
+        _filter = filter;
+        Apply();
+    }
 
     private void OnQueryChanged(string? value)
     {
@@ -103,5 +168,9 @@ else
         StateHasChanged();
     });
 
-    public void Dispose() => Books.Changed -= OnBooksChanged;
+    public void Dispose()
+    {
+        Books.Changed -= OnBooksChanged;
+        Readings.Changed -= OnBooksChanged;
+    }
 }

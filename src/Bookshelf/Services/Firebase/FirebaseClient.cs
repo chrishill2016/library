@@ -46,6 +46,11 @@ public sealed class FirebaseClient(IJSRuntime js, FirebaseOptions options) : IFi
 
     public Task PutBooksAsync(string libraryId, IReadOnlyList<Book> books) => Call("putBooks", libraryId, books);
 
+    public async Task<IReadOnlyList<RemoteReading>> GetReadingChangesAsync(string libraryId, long? sinceMillis) =>
+        await Call<RemoteReading[]>("getReadingChanges", libraryId, sinceMillis);
+
+    public Task PutReadingsAsync(string libraryId, IReadOnlyList<Reading> readings) => Call("putReadings", libraryId, readings);
+
     private async Task Call(string identifier, params object?[] args) =>
         await (await _module.Value).InvokeVoidAsync(identifier, args);
 

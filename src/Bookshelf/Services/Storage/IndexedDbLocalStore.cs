@@ -6,6 +6,7 @@ namespace Bookshelf.Services.Storage;
 public sealed class IndexedDbLocalStore(IJSRuntime js) : ILocalStore, IAsyncDisposable
 {
     private const string Books = "books";
+    private const string Readings = "readings";
     private const string Outbox = "outbox";
     private const string Settings = "settings";
 
@@ -20,6 +21,15 @@ public sealed class IndexedDbLocalStore(IJSRuntime js) : ILocalStore, IAsyncDisp
 
     public async Task PutBookAsync(Book book, OutboxEntry? outboxEntry = null) =>
         await (await _module.Value).InvokeVoidAsync("putWithOutbox", Books, book, outboxEntry);
+
+    public async Task<IReadOnlyList<Reading>> GetReadingsAsync() =>
+        await (await _module.Value).InvokeAsync<Reading[]>("getAll", Readings);
+
+    public async Task<Reading?> GetReadingAsync(string id) =>
+        await (await _module.Value).InvokeAsync<Reading?>("get", Readings, id);
+
+    public async Task PutReadingAsync(Reading reading, OutboxEntry? outboxEntry = null) =>
+        await (await _module.Value).InvokeVoidAsync("putWithOutbox", Readings, reading, outboxEntry);
 
     public async Task<IReadOnlyList<OutboxEntry>> GetOutboxAsync() =>
         await (await _module.Value).InvokeAsync<OutboxEntry[]>("getAll", Outbox);
@@ -40,7 +50,7 @@ public sealed class IndexedDbLocalStore(IJSRuntime js) : ILocalStore, IAsyncDisp
         await (await _module.Value).InvokeVoidAsync("remove", Settings, key);
 
     public async Task ClearLibraryDataAsync() =>
-        await (await _module.Value).InvokeVoidAsync("clear", Books, Outbox);
+        await (await _module.Value).InvokeVoidAsync("clear", Books, Readings, Outbox);
 
     public async ValueTask DisposeAsync()
     {

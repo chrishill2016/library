@@ -109,30 +109,36 @@ export function cancelInvite(libraryId, email) {
     return updateDoc(doc(db, 'libraries', libraryId), { invitedEmails: arrayRemove(email.toLowerCase()) });
 }
 
-// ---------- Books ----------
+// ---------- Books and readings ----------
+// Both live under the library and carry a server-set syncedAt, which the pull cursor follows.
 
-// Returns [{ book, syncedAt }] for books written after sinceMillis (all books when null).
-export async function getBookChanges(libraryId, sinceMillis) {
-    const books = collection(db, 'libraries', libraryId, 'books');
+// Returns [{ <name>: item, syncedAt }] for items written after sinceMillis (all when null).
+async function getChanges(libraryId, collectionName, itemName, sinceMillis) {
+    const items = collection(db, 'libraries', libraryId, collectionName);
     const q = sinceMillis == null
-        ? query(books, orderBy('syncedAt'))
-        : query(books, where('syncedAt', '>', Timestamp.fromMillis(sinceMillis)), orderBy('syncedAt'));
+        ? query(items, orderBy('syncedAt'))
+        : query(items, where('syncedAt', '>', Timestamp.fromMillis(sinceMillis)), orderBy('syncedAt'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => {
-        const { syncedAt, ...book } = d.data();
-        return { book, syncedAt: syncedAt?.toMillis() ?? 0 };
+        const { syncedAt, ...item } = d.data();
+        return { [itemName]: item, syncedAt: syncedAt?.toMillis() ?? 0 };
     });
 }
 
-export async function putBooks(libraryId, books) {
-    for (let i = 0; i < books.length; i += BATCH_SIZE) {
+async function putAll(libraryId, collectionName, items) {
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
         const batch = writeBatch(db);
-        for (const book of books.slice(i, i + BATCH_SIZE)) {
-            batch.set(doc(db, 'libraries', libraryId, 'books', book.id), { ...book, syncedAt: serverTimestamp() });
+        for (const item of items.slice(i, i + BATCH_SIZE)) {
+            batch.set(doc(db, 'libraries', libraryId, collectionName, item.id), { ...item, syncedAt: serverTimestamp() });
         }
         await batch.commit();
     }
 }
+
+export const getBookChanges = (libraryId, sinceMillis) => getChanges(libraryId, 'books', 'book', sinceMillis);
+export const putBooks = (libraryId, books) => putAll(libraryId, 'books', books);
+export const getReadingChanges = (libraryId, sinceMillis) => getChanges(libraryId, 'readings', 'reading', sinceMillis);
+export const putReadings = (libraryId, readings) => putAll(libraryId, 'readings', readings);
 
 // ---------- Cover photos (Firebase Storage) ----------
 

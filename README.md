@@ -7,10 +7,11 @@ A family library app for keeping track of the books we own. It's an installable,
 - **Scan to add:** point the camera at the barcode and the book is looked up (title, author, publisher, year, cover) and added. There's a rapid mode with undo and a "confirm each book" mode. Duplicates are flagged, not re-added.
 - **Find online** by title or author for books without a barcode, or look up an ISBN from the add form.
 - **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). The app guesses where the book is; drag the corners to adjust and it's straightened into a clean cover, shrunk to about 800px. Works offline and syncs to the other phone.
-- Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname or date added.
+- **Ratings and reading log:** each of us has our own 1–5 stars, review, status (Want to read / Reading / Read) and the dates we read a book (as exact as we remember: a day, a month or just a year). You see the other person's too.
+- Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname, date added or your rating; filter by your reading status. Books you're reading are pinned at the top.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
 
-See [ROADMAP.md](ROADMAP.md) for what's next (ratings and the reading log).
+See [ROADMAP.md](ROADMAP.md) for ideas for what's next.
 
 ## Stack
 
@@ -28,6 +29,7 @@ src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
   Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
   Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
+  Features/ReadingLog/  ReadingService, ReadingPanel (book page), StarRating
   Features/Photos/      PhotoService, PhotoButton, CoverCropper, IPhotoStore (wwwroot/js/photos.js, cover-geometry.js)
   Features/Account/     AuthService, sign-in screen
   Features/Library/     LibraryService (create, invite, join), setup screen, library settings
@@ -38,7 +40,7 @@ src/Bookshelf/
   Services/Firebase/    FirebaseClient (wwwroot/js/firebase.js), FirestoreRemoteStore
   Services/Browser/     Connectivity and service-worker update hooks (wwwroot/js/browser.js)
   Theming/              AppTheme, ThemeRegistry, ThemeService
-  Models/               Book, OutboxEntry, SyncState
+  Models/               Book, Reading (+ ReadDate, ReadingStatus), OutboxEntry, SyncState
 tests/Bookshelf.Tests/  xUnit + bUnit tests
 tests/firestore-rules/  Security rule tests for Firestore and Storage (Node + emulators)
 firestore.rules         Firestore security rules
@@ -88,12 +90,21 @@ The remote is Firestore (`FirestoreRemoteStore`):
 - **Replacing or removing:** a replaced or removed photo, or one belonging to a deleted book, is deleted from Storage. A tombstone record keeps the delete queued while offline.
 - **Other phones** download a photo the first time it's shown and keep it in IndexedDB for offline use.
 
+## Ratings and the reading log
+
+- **One record per person per book:** `Reading` (`libraries/{id}/readings/{bookId}_{uid}`) holds that person's rating, review, status, read dates and their name (so the other phone can show it offline).
+  - Keeping it out of the book means two people editing at once never overwrite each other.
+  - The rules only let you write a document whose id ends in your own uid; everyone in the library can read all of them.
+- **Read dates** are `ReadDate(Year, Month?, Day?)`, shown as "12 March 2015", "March 2015" or "2015". Adding one marks the book Read.
+- **Sync:** readings use the same outbox and last-write-wins pull/push as books. The pull cursor is `"<books>;<readings>"` (server times); an older books-only cursor still works and pulls all readings once.
+- **Shelf:** shows your own stars and status; filters (All / Reading / Want to read / Read / Not read) and "My rating" sort use your reading. "Read" means marked read or with a read date.
+
 ## Accounts and sharing
 
 - Sign-in is required. A user's sign-in and library are remembered on the device, so the app opens offline.
 - **Firestore layout:**
   - `libraries/{id}` holds `name`, `ownerUid`, `memberUids`, `invitedEmails` and `members` (uid → name and email).
-  - Books are stored at `libraries/{id}/books/{bookId}`.
+  - Books are stored at `libraries/{id}/books/{bookId}`, and readings at `libraries/{id}/readings/{bookId}_{uid}`.
 - **Owner:** can invite or cancel invites by email.
 - **Invited person:** sees the invitation when they sign in. Joining adds only themselves, which the rules enforce.
 - **Switching accounts:** if a different account signs in on the same device, local books are cleared and that account's library is downloaded.

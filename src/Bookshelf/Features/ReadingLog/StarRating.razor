@@ -1,0 +1,36 @@
+@* 1–5 stars. Tapping the current rating clears it. *@
+@if (ReadOnly)
+{
+    <span class="star-rating star-rating-@Size readonly" role="img" aria-label="@(Value is { } v ? $"{v} out of 5 stars" : "Not rated")"
+          data-testid="@TestId">
+        @for (var i = 1; i <= 5; i++)
+        {
+            <MudIcon Icon="@(i <= (Value ?? 0) ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)" Size="@Size" />
+        }
+    </span>
+}
+else
+{
+    <span class="star-rating star-rating-@Size" role="group" aria-label="@Label" data-testid="@TestId">
+        @for (var i = 1; i <= 5; i++)
+        {
+            var stars = i;
+            <button type="button" class="star" aria-label="@(stars == 1 ? "1 star" : $"{stars} stars")" aria-pressed="@(stars == Value ? "true" : "false")"
+                    disabled="@Disabled" @onclick="() => ClickAsync(stars)" data-testid="star-@stars">
+                <MudIcon Icon="@(stars <= (Value ?? 0) ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)" Size="@Size" />
+            </button>
+        }
+    </span>
+}
+
+@code {
+    [Parameter] public int? Value { get; set; }
+    [Parameter] public EventCallback<int?> ValueChanged { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+    [Parameter] public string Label { get; set; } = "Rating";
+    [Parameter] public string? TestId { get; set; }
+
+    private Task ClickAsync(int stars) => ValueChanged.InvokeAsync(stars == Value ? null : stars);
+}

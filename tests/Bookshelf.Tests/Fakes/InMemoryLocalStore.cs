@@ -6,6 +6,7 @@ namespace Bookshelf.Tests.Fakes;
 public sealed class InMemoryLocalStore : ILocalStore
 {
     public Dictionary<string, Book> Books { get; } = [];
+    public Dictionary<string, Reading> Readings { get; } = [];
     public Dictionary<string, OutboxEntry> Outbox { get; } = [];
     public Dictionary<string, string> Settings { get; } = [];
 
@@ -19,6 +20,21 @@ public sealed class InMemoryLocalStore : ILocalStore
     public Task PutBookAsync(Book book, OutboxEntry? outboxEntry = null)
     {
         Books[book.Id] = book;
+        if (outboxEntry is not null)
+        {
+            Outbox[outboxEntry.Id] = outboxEntry;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<Reading>> GetReadingsAsync() => Task.FromResult<IReadOnlyList<Reading>>([.. Readings.Values]);
+
+    public Task<Reading?> GetReadingAsync(string id) => Task.FromResult(Readings.GetValueOrDefault(id));
+
+    public Task PutReadingAsync(Reading reading, OutboxEntry? outboxEntry = null)
+    {
+        Readings[reading.Id] = reading;
         if (outboxEntry is not null)
         {
             Outbox[outboxEntry.Id] = outboxEntry;
@@ -61,6 +77,7 @@ public sealed class InMemoryLocalStore : ILocalStore
     public Task ClearLibraryDataAsync()
     {
         Books.Clear();
+        Readings.Clear();
         Outbox.Clear();
         return Task.CompletedTask;
     }
