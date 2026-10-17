@@ -9,7 +9,19 @@ public sealed class FakeRemoteStore : IRemoteStore
     private readonly List<(long Seq, Book Book)> _log = [];
     private long _seq;
 
-    public bool IsConfigured { get; set; } = true;
+    private bool _isConfigured = true;
+
+    public bool IsConfigured
+    {
+        get => _isConfigured;
+        set
+        {
+            _isConfigured = value;
+            ConfigurationChanged?.Invoke();
+        }
+    }
+
+    public event Action? ConfigurationChanged;
     public Exception? FailWith { get; set; }
     public List<IReadOnlyList<Book>> Pushes { get; } = [];
     public List<string?> CursorsRequested { get; } = [];

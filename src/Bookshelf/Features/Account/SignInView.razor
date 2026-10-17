@@ -1,0 +1,36 @@
+@inject AuthService Auth
+@inject IConnectivityService Connectivity
+
+<div class="gate-panel sign-in" data-testid="sign-in">
+    <img src="icon-192.png" alt="" class="sign-in-crest" />
+    <MudText Typo="Typo.h3" HtmlTag="h1">Bookshelf</MudText>
+    <div class="ornament-rule sign-in-rule"></div>
+    <MudText Typo="Typo.body1" Class="font-italic">Our family library, on the shelf and in your pocket.</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6"
+               StartIcon="@Icons.Custom.Brands.Google" OnClick="SignInAsync" Disabled="_busy" data-testid="sign-in-button">
+        Sign in with Google
+    </MudButton>
+
+    @if (!Connectivity.IsOnline)
+    {
+        <MudText Typo="Typo.body2" Class="mt-3 text-secondary">You're offline. Connect to sign in.</MudText>
+    }
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mt-4" data-testid="sign-in-error">@_error</MudAlert>
+    }
+</div>
+
+@code {
+    private bool _busy;
+    private string? _error;
+
+    private async Task SignInAsync()
+    {
+        _busy = true;
+        _error = null;
+        _error = await Auth.SignInAsync();
+        _busy = false;
+    }
+}

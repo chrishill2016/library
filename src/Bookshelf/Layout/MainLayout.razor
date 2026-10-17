@@ -3,6 +3,8 @@
 @inject ThemeService Themes
 @inject ISyncService Sync
 @inject AppUpdateService Updates
+@inject AuthService Auth
+@inject LibraryService Library
 @inject ISnackbar Snackbar
 
 <MudThemeProvider Theme="@Themes.Current.Theme" IsDarkMode="@Themes.Current.IsDark" />
@@ -18,14 +20,17 @@
                 <span>Bookshelf</span>
             </MudLink>
             <MudSpacer />
-            <SyncStatusIndicator />
-            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Href="settings" aria-label="Settings" />
+            @if (Library.Status == LibraryStatus.Ready)
+            {
+                <SyncStatusIndicator />
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Href="settings" aria-label="Settings" />
+            }
         </MudAppBar>
 
         <MudMainContent>
             <MudContainer MaxWidth="MaxWidth.Medium" Class="py-4 page-container">
                 <UpdateBanner />
-                @Body
+                <AppGate>@Body</AppGate>
             </MudContainer>
             <footer class="app-footer">
                 <span class="fleuron">❦</span>
@@ -38,15 +43,17 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        Themes.Changed += OnThemeChanged;
+        Themes.Changed += OnChanged;
+        Library.Changed += OnChanged;
         Sync.SyncCompleted += OnSyncCompleted;
 
         await Themes.InitializeAsync();
         await Updates.InitializeAsync();
         await Sync.InitializeAsync();
+        await Auth.InitializeAsync();
     }
 
-    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+    private void OnChanged() => InvokeAsync(StateHasChanged);
 
     private void OnSyncCompleted(SyncResult result) => InvokeAsync(() =>
     {
@@ -63,7 +70,8 @@
 
     public void Dispose()
     {
-        Themes.Changed -= OnThemeChanged;
+        Themes.Changed -= OnChanged;
+        Library.Changed -= OnChanged;
         Sync.SyncCompleted -= OnSyncCompleted;
     }
 }

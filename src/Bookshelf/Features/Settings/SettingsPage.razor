@@ -2,10 +2,24 @@
 @implements IDisposable
 @inject ThemeService Themes
 @inject ISyncService Sync
+@inject AuthService Auth
+@inject IDialogService Dialogs
 
 <PageTitle>Settings · Bookshelf</PageTitle>
 
 <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Settings</MudText>
+
+<MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-2">Library</MudText>
+    <LibrarySettings />
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-2">Sync</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3" data-testid="sync-summary">@SyncSummary</MudText>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
+               OnClick="() => Sync.SyncNowAsync()" Disabled="@(Sync.State.IsSyncing || !Sync.State.IsOnline || !Sync.State.RemoteConfigured)">Sync now</MudButton>
+</MudPaper>
 
 <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
     <MudText Typo="Typo.h6" Class="mb-2">Binding</MudText>
@@ -31,18 +45,13 @@
 </MudPaper>
 
 <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
-    <MudText Typo="Typo.h6" Class="mb-2">Sync</MudText>
-    @if (!Sync.State.RemoteConfigured)
+    <MudText Typo="Typo.h6" Class="mb-2">Account</MudText>
+    @if (Auth.User is { } user)
     {
-        <MudText Typo="Typo.body2">
-            Books are saved on this device for now. Once sign-in and cloud sync are added,
-            everything waiting here (@Sync.State.PendingCount @(Sync.State.PendingCount == 1 ? "change" : "changes")) will upload automatically.
-        </MudText>
-    }
-    else
-    {
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
-                   OnClick="() => Sync.SyncNowAsync()" Disabled="@(Sync.State.IsSyncing || !Sync.State.IsOnline)">Sync now</MudButton>
+        <MudText Typo="Typo.body1">@user.Name</MudText>
+        <MudText Typo="Typo.body2" Class="text-secondary mb-3">@user.Email</MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout"
+                   OnClick="SignOutAsync" data-testid="sign-out">Sign out</MudButton>
     }
 </MudPaper>
 
@@ -53,6 +62,34 @@
 </MudPaper>
 
 @code {
+    private string SyncSummary => Sync.State switch
+    {
+        { IsOnline: false } => $"Offline. {Pending} Changes upload when you're back online.",
+        { LastError: { } error } => $"Last sync failed: {error}",
+        { PendingCount: > 0 } => Pending,
+        _ => "Everything is up to date.",
+    };
+
+    private string Pending => Sync.State.PendingCount switch
+    {
+        0 => "No changes waiting.",
+        1 => "1 change waiting to sync.",
+        var n => $"{n} changes waiting to sync.",
+    };
+
+    private async Task SignOutAsync()
+    {
+        var pending = Sync.State.PendingCount;
+        var message = pending == 0
+            ? "You'll need to sign in again to use Bookshelf."
+            : $"{pending} {(pending == 1 ? "change hasn't" : "changes haven't")} synced yet. They stay on this device and upload when you sign back in with the same account.";
+        var confirmed = await Dialogs.ShowMessageBoxAsync("Sign out?", message, yesText: "Sign out", cancelText: "Stay signed in");
+        if (confirmed == true)
+        {
+            await Auth.SignOutAsync();
+        }
+    }
+
     protected override void OnInitialized()
     {
         Themes.Changed += OnChanged;

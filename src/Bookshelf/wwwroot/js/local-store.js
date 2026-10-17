@@ -71,3 +71,11 @@ export async function putWithOutbox(store, value, outboxEntry) {
     if (outboxEntry) tx.objectStore('outbox').put(outboxEntry);
     return done(tx);
 }
+
+// Empties the given stores in one transaction.
+export async function clear(...stores) {
+    const db = await open();
+    const tx = db.transaction(stores, 'readwrite');
+    for (const store of stores) tx.objectStore(store).clear();
+    return done(tx);
+}

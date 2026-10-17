@@ -1,0 +1,119 @@
+@implements IDisposable
+@inject LibraryService Library
+@inject AuthService Auth
+@inject IConnectivityService Connectivity
+@inject ISnackbar Snackbar
+
+@if (Library.Current is { } library)
+{
+    <MudText Typo="Typo.h6" Class="mb-1" data-testid="library-title">@library.Name</MudText>
+
+    <MudText Typo="Typo.overline" Class="d-block mt-2">Members</MudText>
+    @if (library.Members.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="text-secondary">Connect to see members.</MudText>
+    }
+    else
+    {
+        <ul class="plain-list" data-testid="members">
+            @foreach (var (uid, member) in library.Members.OrderBy(m => m.Key != library.OwnerUid).ThenBy(m => m.Value.Name))
+            {
+                <li>
+                    <span>@member.Name</span>
+                    @if (uid == library.OwnerUid)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Owner</MudChip>
+                    }
+                    @if (uid == Auth.User?.Uid)
+                    {
+                        <span class="text-secondary font-italic"> (you)</span>
+                    }
+                    <div class="text-secondary member-email">@member.Email</div>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (library.InvitedEmails.Count > 0)
+    {
+        <MudText Typo="Typo.overline" Class="d-block mt-3">Invited</MudText>
+        <ul class="plain-list" data-testid="invited">
+            @foreach (var email in library.InvitedEmails)
+            {
+                <li class="d-flex align-center justify-space-between">
+                    <span>@email</span>
+                    @if (Library.IsOwner)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                   OnClick="() => Library.CancelInviteAsync(email)" Disabled="@(!Connectivity.IsOnline)">Cancel</MudButton>
+                    }
+                </li>
+            }
+        </ul>
+    }
+
+    @if (Library.IsOwner)
+    {
+        <MudText Typo="Typo.overline" Class="d-block mt-3">Invite someone</MudText>
+        <MudText Typo="Typo.body2" Class="text-secondary mb-2">
+            Enter their Google account email. They'll see the invitation when they sign in to Bookshelf.
+        </MudText>
+        <div class="invite-row">
+            <MudTextField @bind-Value="_email" Label="Email" Variant="Variant.Outlined" InputType="InputType.Email"
+                          Margin="Margin.Dense" data-testid="invite-email" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InviteAsync"
+                       Disabled="@(_busy || !Connectivity.IsOnline)" data-testid="invite-button">Invite</MudButton>
+        </div>
+        @if (!Connectivity.IsOnline)
+        {
+            <MudText Typo="Typo.caption" Class="text-secondary">Connect to the internet to send invitations.</MudText>
+        }
+    }
+}
+
+@code {
+    private string _email = "";
+    private bool _busy;
+
+    private async Task InviteAsync()
+    {
+        _busy = true;
+        try
+        {
+            var error = await Library.InviteAsync(_email);
+            if (error is null)
+            {
+                Snackbar.Add($"Invited {_email.Trim().ToLowerInvariant()}.", Severity.Success);
+                _email = "";
+            }
+            else
+            {
+                Snackbar.Add(error, Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Couldn't send the invitation: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Library.Changed += OnChanged;
+        Connectivity.Changed += OnConnectivityChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnConnectivityChanged(bool _) => OnChanged();
+
+    public void Dispose()
+    {
+        Library.Changed -= OnChanged;
+        Connectivity.Changed -= OnConnectivityChanged;
+    }
+}

@@ -1,0 +1,68 @@
+@inject LibraryService Library
+@inject AuthService Auth
+
+<div class="gate-panel" data-testid="library-setup">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Welcome, @Auth.User?.Name</MudText>
+    <div class="ornament-rule sign-in-rule"></div>
+
+    @if (Library.Invites.Count > 0)
+    {
+        <MudText Typo="Typo.body1" Class="mb-3">You've been invited to join:</MudText>
+        @foreach (var invite in Library.Invites)
+        {
+            <MudPaper Class="pa-4 mb-3 tooled-panel invite-card" Elevation="3" data-testid="invite">
+                <MudText Typo="Typo.h6">@invite.Name</MudText>
+                <MudText Typo="Typo.body2" Class="text-secondary mb-3">Invited by @invite.OwnerName</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
+                           OnClick="() => RunAsync(() => Library.AcceptInviteAsync(invite))">Join @invite.Name</MudButton>
+            </MudPaper>
+        }
+        <MudText Typo="Typo.body2" Class="mt-4 text-secondary">Or start a library of your own:</MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Start your library. Books already on this device will be added to it,
+            and you can invite family from Settings.
+        </MudText>
+    }
+
+    <div class="setup-create">
+        <MudTextField @bind-Value="_name" Label="Library name" Variant="Variant.Outlined" data-testid="library-name" />
+        <MudButton Variant="@(Library.Invites.Count > 0 ? Variant.Outlined : Variant.Filled)" Color="Color.Primary"
+                   Disabled="_busy" OnClick="() => RunAsync(() => Library.CreateAsync(_name))" data-testid="create-library">
+            Create library
+        </MudButton>
+    </div>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mt-4">@_error</MudAlert>
+    }
+
+    <MudButton Variant="Variant.Text" Class="mt-6" OnClick="Auth.SignOutAsync">Use a different account</MudButton>
+</div>
+
+@code {
+    private string _name = LibraryService.DefaultName;
+    private bool _busy;
+    private string? _error;
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            _error = $"That didn't work: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

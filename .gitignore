@@ -480,3 +480,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Firebase
+firebase-debug.log
+firestore-debug.log
+*-debug.log
+.firebase/

@@ -22,4 +22,7 @@ public interface ISyncService
 
     /// <summary>Call after queuing a local change; refreshes the pending count and syncs if possible.</summary>
     Task NotifyLocalChangeAsync();
+
+    /// <summary>Forgets the pull cursor and last sync time, e.g. when switching library.</summary>
+    Task ResetAsync();
 }
