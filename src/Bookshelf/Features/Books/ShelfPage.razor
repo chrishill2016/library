@@ -34,8 +34,12 @@ else if (_all.Count == 0)
     <div class="empty-shelf">
         <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large" Color="Color.Primary" />
         <MudText Typo="Typo.h6">Your shelf is empty</MudText>
-        <MudText Typo="Typo.body2">Add your first book to begin the collection.</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="books/new" StartIcon="@Icons.Material.Filled.Add" Class="mt-3">Add a book</MudButton>
+        <MudText Typo="Typo.body2">Scan a barcode to add your first book.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="scan" StartIcon="@AppIcons.Barcode" Class="mt-3">Scan books</MudButton>
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Text" Href="find" StartIcon="@Icons.Material.Filled.TravelExplore">Find online</MudButton>
+            <MudButton Variant="Variant.Text" Href="books/new" StartIcon="@Icons.Material.Filled.Edit">Type it in</MudButton>
+        </div>
     </div>
 }
 else if (_visible.Count == 0)
@@ -51,7 +55,10 @@ else
     </div>
 }
 
-<MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="books/new" Class="add-fab" aria-label="Add a book" />
+<div class="fab-stack">
+    <MudFab Color="Color.Secondary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" Href="books/new" aria-label="Add a book by hand or search" data-testid="add-fab" />
+    <MudFab Color="Color.Primary" StartIcon="@AppIcons.Barcode" Href="scan" aria-label="Scan books" data-testid="scan-fab" />
+</div>
 
 @code {
     private IReadOnlyList<Book>? _all;

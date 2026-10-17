@@ -1,0 +1,295 @@
+@page "/scan"
+@implements IAsyncDisposable
+@inject ScanService Scanning
+@inject IBarcodeScanner Scanner
+@inject IConnectivityService Connectivity
+@inject Bookshelf.Services.Storage.ILocalStore Store
+@inject ISnackbar Snackbar
+
+<PageTitle>Scan books · Bookshelf</PageTitle>
+
+<div class="page-heading">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Scan books</MudText>
+    @if (AddedCount > 0)
+    {
+        <MudText Typo="Typo.body2" Class="text-secondary" data-testid="added-count">@AddedCount added</MudText>
+    }
+</div>
+
+<div class="scan-options">
+    <MudSwitch T="bool" Value="_confirmEach" ValueChanged="SetConfirmEachAsync" Color="Color.Primary" data-testid="confirm-toggle">
+        Confirm each book
+    </MudSwitch>
+    <MudText Typo="Typo.caption" Class="text-secondary">
+        @(_confirmEach ? "Check the details, then tap Add." : "Books are added as you scan. Undo if one's wrong.")
+    </MudText>
+</div>
+
+@if (_supported == true)
+{
+    <div class="scan-viewport @(_cameraOn ? "on" : null)">
+        <video @ref="_video" class="scan-video" muted playsinline></video>
+        <div class="scan-frame" aria-hidden="true"></div>
+        @if (!_cameraOn)
+        {
+            <div class="scan-paused">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PhotoCamera"
+                           OnClick="StartCameraAsync">Start camera</MudButton>
+            </div>
+        }
+        else
+        {
+            <div class="scan-controls">
+                @if (_hasTorch)
+                {
+                    <MudIconButton Icon="@(_torchOn ? Icons.Material.Filled.FlashlightOff : Icons.Material.Filled.FlashlightOn)"
+                                   Color="Color.Inherit" OnClick="ToggleTorchAsync" aria-label="Torch" />
+                }
+                <MudIconButton Icon="@Icons.Material.Filled.Pause" Color="Color.Inherit" OnClick="StopCameraAsync" aria-label="Pause camera" />
+            </div>
+        }
+    </div>
+    <MudText Typo="Typo.caption" Class="d-block text-center text-secondary mt-1">Point at the barcode on the back cover.</MudText>
+}
+else if (_supported == false)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" data-testid="scan-unsupported">
+        Camera scanning needs Chrome on Android. You can type the ISBN below instead.
+    </MudAlert>
+}
+
+@if (!Connectivity.IsOnline)
+{
+    <MudText Typo="Typo.body2" Class="text-secondary mt-2">You're offline. Scanned books are saved by ISBN and filled in when you're back online.</MudText>
+}
+
+<div class="isbn-entry">
+    <MudTextField T="string" @bind-Value="_typedIsbn" Label="Or type an ISBN" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  InputMode="InputMode.numeric" OnKeyUp="OnIsbnKeyUp" data-testid="isbn-entry" />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="SubmitTypedIsbnAsync" data-testid="isbn-submit">Look up</MudButton>
+</div>
+
+@if (_busy)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+}
+
+<div class="scan-list" data-testid="scan-list">
+    @foreach (var item in _items)
+    {
+        <div class="scan-item @(item.Status is ScanStatus.Skipped or ScanStatus.Undone ? "faded" : null)" data-testid="scan-item">
+            <BookCover Book="@PreviewBook(item)" />
+            <div class="scan-item-text">
+                <MudText Typo="Typo.subtitle1" Class="book-row-title">@item.Title</MudText>
+                @if (item.Candidate?.Author is { Length: > 0 } author)
+                {
+                    <MudText Typo="Typo.body2" Class="book-row-author">@author</MudText>
+                }
+                else if (item.Book?.Author is { Length: > 0 } bookAuthor)
+                {
+                    <MudText Typo="Typo.body2" Class="book-row-author">@bookAuthor</MudText>
+                }
+                <MudText Typo="Typo.caption" Class="scan-status" data-testid="scan-status">@Describe(item)</MudText>
+                <div class="scan-actions">
+                    @switch (item.Status)
+                    {
+                        case ScanStatus.Found:
+                        case ScanStatus.NotFound:
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddAsync(item)" data-testid="scan-add">Add</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => Replace(ScanService.Skip(item))">Skip</MudButton>
+                            break;
+                        case ScanStatus.Duplicate:
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => AddCopyAsync(item)" data-testid="scan-add-copy">Add another copy</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{item.Book!.Id}")">View</MudButton>
+                            break;
+                        case ScanStatus.Added:
+                        case ScanStatus.AddedPending:
+                        case ScanStatus.AddedNotFound:
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{item.Book!.Id}/edit")">Edit</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => UndoAsync(item)" data-testid="scan-undo">Undo</MudButton>
+                            break;
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_items.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="text-center text-secondary mt-4 font-italic">Scanned books will appear here.</MudText>
+}
+
+<div class="d-flex justify-center mt-4">
+    <MudButton Variant="Variant.Text" Href="" StartIcon="@Icons.Material.Filled.MenuBook">Done — back to the shelf</MudButton>
+</div>
+
+@code {
+    internal const string ConfirmEachKey = "scan.confirmEach";
+
+    private readonly List<ScanItem> _items = [];
+    private readonly SemaphoreSlim _queue = new(1, 1);
+    private ElementReference _video;
+    private bool? _supported;
+    private bool _confirmEach;
+    private bool _cameraOn;
+    private bool _hasTorch;
+    private bool _torchOn;
+    private bool _busy;
+    private string? _typedIsbn;
+
+    private int AddedCount => _items.Count(i => i.IsAdded);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _confirmEach = await Store.GetSettingAsync(ConfirmEachKey) == "true";
+        try
+        {
+            _supported = await Scanner.IsSupportedAsync();
+        }
+        catch (Exception)
+        {
+            _supported = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_supported == true && !_cameraOn && !_startedOnce)
+        {
+            _startedOnce = true;
+            await StartCameraAsync();
+        }
+    }
+
+    private bool _startedOnce;
+
+    private async Task StartCameraAsync()
+    {
+        try
+        {
+            _hasTorch = await Scanner.StartAsync(_video, code => InvokeAsync(() => HandleCodeAsync(code)));
+            _cameraOn = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message.Contains("Permission", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotAllowed")
+                ? "Camera access was refused. Allow the camera for this site in Chrome's settings."
+                : $"Couldn't start the camera: {ex.Message}", Severity.Warning);
+            _cameraOn = false;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task StopCameraAsync()
+    {
+        await Scanner.StopAsync();
+        _cameraOn = false;
+        _torchOn = false;
+    }
+
+    private async Task ToggleTorchAsync()
+    {
+        _torchOn = !_torchOn;
+        await Scanner.SetTorchAsync(_torchOn);
+    }
+
+    private async Task SetConfirmEachAsync(bool value)
+    {
+        _confirmEach = value;
+        await Store.SetSettingAsync(ConfirmEachKey, value ? "true" : "false");
+    }
+
+    private async Task OnIsbnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SubmitTypedIsbnAsync();
+        }
+    }
+
+    private async Task SubmitTypedIsbnAsync()
+    {
+        var code = _typedIsbn?.Trim() ?? "";
+        if (!Isbn.IsValid(code))
+        {
+            Snackbar.Add("That isn't a valid ISBN. Check the digits (10 or 13).", Severity.Warning);
+            return;
+        }
+
+        _typedIsbn = "";
+        await HandleCodeAsync(code);
+    }
+
+    internal async Task HandleCodeAsync(string code)
+    {
+        // One at a time, so quick scans don't race each other.
+        await _queue.WaitAsync();
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            if (await Scanning.HandleAsync(code, _confirmEach) is { } item)
+            {
+                _items.Insert(0, item);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Something went wrong adding that book: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+            _queue.Release();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddAsync(ScanItem item) => Replace(await Scanning.AddAsync(item));
+
+    private async Task AddCopyAsync(ScanItem item) => Replace(await Scanning.AddAnotherCopyAsync(item));
+
+    private async Task UndoAsync(ScanItem item) => Replace(await Scanning.UndoAsync(item));
+
+    private void Replace(ScanItem updated)
+    {
+        var index = _items.FindIndex(i => i.Id == updated.Id);
+        if (index >= 0)
+        {
+            _items[index] = updated;
+        }
+    }
+
+    private static Book PreviewBook(ScanItem item) =>
+        item.Book ?? item.Candidate?.ToNewBook() ?? new Book { Id = item.Id.ToString("N"), Title = item.Title };
+
+    private static string Describe(ScanItem item) => item.Status switch
+    {
+        ScanStatus.Added => "Added to the shelf",
+        ScanStatus.AddedPending => "Saved by ISBN. Details will be filled in when you're online.",
+        ScanStatus.AddedNotFound => "Saved by ISBN. Not found online; add the details when you can.",
+        ScanStatus.Found => $"Found · {item.Candidate?.PublishedYear}".TrimEnd(' ', '·'),
+        ScanStatus.NotFound when item.Offline => "You're offline. Add now and the details will be filled in later.",
+        ScanStatus.NotFound => "Not found online. Add by ISBN and fill in the details later.",
+        ScanStatus.Duplicate => "Already on the shelf",
+        ScanStatus.Skipped => "Skipped",
+        ScanStatus.Undone => "Removed",
+        _ => "",
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await Scanner.StopAsync();
+        }
+        catch (Exception)
+        {
+            // Leaving the page; nothing useful to do if the camera is already gone.
+        }
+
+        _queue.Dispose();
+    }
+}

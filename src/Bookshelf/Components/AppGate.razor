@@ -1,6 +1,7 @@
 @implements IDisposable
 @inject AuthService Auth
 @inject LibraryService Library
+@inject PendingLookupService PendingLookups
 
 @* Sign-in is required: only show the app once a library is ready. *@
 @switch (Library.Status)
@@ -57,7 +58,25 @@
         Auth.Changed += OnChanged;
     }
 
-    private void OnChanged() => InvokeAsync(StateHasChanged);
+    private void OnChanged() => InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        if (Library.Status == LibraryStatus.Ready && !_lookupsStarted)
+        {
+            // Fill in any books scanned offline last time.
+            _lookupsStarted = true;
+            try
+            {
+                await PendingLookups.RunAsync();
+            }
+            catch (Exception)
+            {
+                // Best effort; pending books are retried on reconnect.
+            }
+        }
+    });
+
+    private bool _lookupsStarted;
 
     public void Dispose()
     {

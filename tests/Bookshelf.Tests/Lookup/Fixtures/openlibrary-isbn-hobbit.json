@@ -1,0 +1,18 @@
+{
+  "ISBN:9780261102217": {
+    "url": "https://openlibrary.org/books/OL21039937M/The_Hobbit",
+    "key": "/books/OL21039937M",
+    "title": "The hobbit",
+    "subtitle": "or There and back again",
+    "authors": [ { "url": "https://openlibrary.org/authors/OL26320A/J._R._R._Tolkien", "name": "J.R.R. Tolkien" } ],
+    "number_of_pages": 310,
+    "identifiers": { "isbn_10": ["0261102214"], "isbn_13": ["9780261102217"] },
+    "publishers": [ { "name": "HarperCollins" } ],
+    "publish_date": "1996",
+    "cover": {
+      "small": "https://covers.openlibrary.org/b/id/8406786-S.jpg",
+      "medium": "https://covers.openlibrary.org/b/id/8406786-M.jpg",
+      "large": "https://covers.openlibrary.org/b/id/8406786-L.jpg"
+    }
+  }
+}

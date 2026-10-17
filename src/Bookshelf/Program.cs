@@ -2,6 +2,8 @@ using Bookshelf;
 using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
 using Bookshelf.Features.Library;
+using Bookshelf.Features.Lookup;
+using Bookshelf.Features.Scan;
 using Bookshelf.Services.Browser;
 using Bookshelf.Services.Firebase;
 using Bookshelf.Services.Storage;
@@ -36,5 +38,15 @@ builder.Services.AddSingleton<BookService>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<LibraryService>();
 builder.Services.AddSingleton<ThemeService>();
+
+// Book lookup: Google Books first (better UK coverage), Open Library fills gaps.
+builder.Services.AddSingleton(LookupOptions.FromConfiguration(builder.Configuration));
+var lookupHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+builder.Services.AddSingleton<IBookSource>(sp => new GoogleBooksSource(lookupHttp, sp.GetRequiredService<LookupOptions>()));
+builder.Services.AddSingleton<IBookSource>(_ => new OpenLibrarySource(lookupHttp));
+builder.Services.AddSingleton<IBookLookup, BookLookupService>();
+builder.Services.AddSingleton<PendingLookupService>();
+builder.Services.AddSingleton<ScanService>();
+builder.Services.AddSingleton<IBarcodeScanner, BarcodeScanner>();
 
 await builder.Build().RunAsync();

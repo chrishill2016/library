@@ -1,0 +1,13 @@
+{
+  "totalItems": 1,
+  "items": [
+    {
+      "volumeInfo": {
+        "title": "The Hobbit",
+        "authors": ["J. R. R. Tolkien"],
+        "publishedDate": "1996",
+        "industryIdentifiers": [ { "type": "ISBN_13", "identifier": "9780261102217" } ]
+      }
+    }
+  ]
+}

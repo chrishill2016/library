@@ -1,0 +1,128 @@
+@page "/find"
+@inject IBookLookup Lookup
+@inject BookService Books
+@inject IConnectivityService Connectivity
+@inject ISnackbar Snackbar
+
+<PageTitle>Find a book · Bookshelf</PageTitle>
+
+<MudButton Href="" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">The Shelf</MudButton>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Find a book</MudText>
+<MudText Typo="Typo.body2" Class="text-secondary mb-3">For books without a barcode: search by title and/or author.</MudText>
+
+<div class="isbn-entry">
+    <MudTextField T="string" @bind-Value="_query" Label="Title, author, or both" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  OnKeyUp="OnKeyUp" Immediate="true" data-testid="find-query" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync" Disabled="_busy" data-testid="find-submit">Search</MudButton>
+</div>
+
+@if (!Connectivity.IsOnline)
+{
+    <MudText Typo="Typo.body2" Class="text-secondary mt-2">You're offline. Searching needs a connection, but you can still <MudLink Href="books/new">type the details in</MudLink>.</MudText>
+}
+
+@if (_busy)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+}
+else if (_results is { Count: 0 })
+{
+    <MudText Typo="Typo.body1" Class="mt-4 text-center" data-testid="find-empty">
+        Nothing found for “@_searched”. Try fewer words, or <MudLink Href="books/new">type it in</MudLink>.
+    </MudText>
+}
+else if (_results is not null)
+{
+    <div class="scan-list" data-testid="find-results">
+        @foreach (var result in _results)
+        {
+            <div class="scan-item" data-testid="find-result">
+                <BookCover Book="@result.Candidate.ToNewBook()" />
+                <div class="scan-item-text">
+                    <MudText Typo="Typo.subtitle1" Class="book-row-title">@result.Candidate.Title</MudText>
+                    @if (!string.IsNullOrEmpty(result.Candidate.Author))
+                    {
+                        <MudText Typo="Typo.body2" Class="book-row-author">@result.Candidate.Author</MudText>
+                    }
+                    <MudText Typo="Typo.caption" Class="text-secondary">
+                        @string.Join(" · ", new[] { result.Candidate.PublishedYear?.ToString(), result.Candidate.Publisher }.Where(s => !string.IsNullOrEmpty(s)))
+                    </MudText>
+                    <div class="scan-actions">
+                        @if (result.AddedId is { } addedId)
+                        {
+                            <MudText Typo="Typo.caption" Class="scan-status">Added</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{addedId}")">View</MudButton>
+                        }
+                        else if (result.ExistingId is { } existingId)
+                        {
+                            <MudText Typo="Typo.caption" Class="scan-status">Already on the shelf</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{existingId}")">View</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddAsync(result)" data-testid="find-add">Add</MudButton>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private string? _query;
+    private string? _searched;
+    private bool _busy;
+    private List<Result>? _results;
+
+    private sealed class Result(BookCandidate candidate)
+    {
+        public BookCandidate Candidate { get; } = candidate;
+        public string? ExistingId { get; set; }
+        public string? AddedId { get; set; }
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        var query = _query?.Trim();
+        if (string.IsNullOrEmpty(query) || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _searched = query;
+        try
+        {
+            var found = await Lookup.SearchAsync(query);
+            var results = new List<Result>();
+            foreach (var candidate in found)
+            {
+                var existing = candidate.Isbn is { } isbn ? await Books.FindByIsbnAsync(isbn) : null;
+                results.Add(new Result(candidate) { ExistingId = existing?.Id });
+            }
+
+            _results = results;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task AddAsync(Result result)
+    {
+        var saved = await Books.SaveAsync(result.Candidate.ToNewBook());
+        result.AddedId = saved.Id;
+        Snackbar.Add($"Added “{saved.Title}”.", Severity.Success);
+    }
+}

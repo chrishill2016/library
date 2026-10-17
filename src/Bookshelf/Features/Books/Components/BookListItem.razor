@@ -6,7 +6,15 @@
         {
             <MudText Typo="Typo.body2" Class="book-row-author">@Book.Author</MudText>
         }
-        @if (Book.PublishedYear is { } year)
+        @if (Book.LookupState == BookLookupState.Pending)
+        {
+            <MudText Typo="Typo.caption" Class="lookup-flag" data-testid="lookup-pending">Details coming when online</MudText>
+        }
+        else if (Book.LookupState == BookLookupState.NotFound)
+        {
+            <MudText Typo="Typo.caption" Class="lookup-flag" data-testid="lookup-notfound">Not found online · tap to add details</MudText>
+        }
+        else if (Book.PublishedYear is { } year)
         {
             <MudText Typo="Typo.caption" Class="text-secondary">@year</MudText>
         }

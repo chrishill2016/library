@@ -1,0 +1,24 @@
+{
+  "kind": "books#volumes",
+  "totalItems": 2,
+  "items": [
+    {
+      "volumeInfo": {
+        "title": "Emma",
+        "authors": ["Jane Austen"],
+        "publisher": "Penguin UK",
+        "publishedDate": "2003",
+        "industryIdentifiers": [ { "type": "ISBN_10", "identifier": "0141439580" } ],
+        "imageLinks": { "thumbnail": "http://books.google.com/books/content?id=emma1&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api" }
+      }
+    },
+    {
+      "volumeInfo": {
+        "title": "Emma: A Study Guide",
+        "authors": ["Someone Else"],
+        "publishedDate": "Sep 01, 2010"
+      }
+    },
+    { "volumeInfo": { "authors": ["No Title"] } }
+  ]
+}

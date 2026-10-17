@@ -3,6 +3,7 @@
 @inject BookService Books
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IBookLookup Lookup
 
 <PageTitle>@(IsNew ? "Add a book" : "Edit book") · Bookshelf</PageTitle>
 
@@ -23,6 +24,12 @@ else
 {
     <MudPaper Class="pa-4 tooled-panel" Elevation="3">
         <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-2">@(IsNew ? "Add a book" : "Edit book")</MudText>
+        @if (IsNew)
+        {
+            <MudText Typo="Typo.body2" Class="text-secondary mb-3">
+                Quicker: <MudLink Href="scan">scan the barcode</MudLink> or <MudLink Href="find">find it online</MudLink>.
+            </MudText>
+        }
         <MudForm @ref="_mudForm" @bind-IsValid="_isValid">
             <MudTextField @bind-Value="_form.Title" Label="Title" Required="true" RequiredError="Every book needs a title."
                           Variant="Variant.Outlined" Class="mb-3" AutoFocus="@IsNew" data-testid="title" />
@@ -30,7 +37,9 @@ else
                           HelperText="Separate several authors with “&”." data-testid="author" />
             <div class="form-row">
                 <MudTextField @bind-Value="_form.Isbn" Label="ISBN" Variant="Variant.Outlined" Immediate="true"
-                              InputMode="InputMode.numeric" HelperText="@_form.IsbnWarning" data-testid="isbn" />
+                              InputMode="InputMode.numeric" HelperText="@_form.IsbnWarning" data-testid="isbn"
+                              Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TravelExplore"
+                              AdornmentAriaLabel="Look up this ISBN online" OnAdornmentClick="LookUpIsbnAsync" />
                 <MudNumericField @bind-Value="_form.PublishedYear" Label="Year" Variant="Variant.Outlined"
                                  Min="1000" Max="2100" HideSpinButtons="true" data-testid="year" />
             </div>
@@ -57,6 +66,30 @@ else
     [Parameter] public string? Id { get; set; }
 
     private bool IsNew => string.IsNullOrEmpty(Id);
+
+    private async Task LookUpIsbnAsync()
+    {
+        if (_form is null || !Isbn.IsValid(_form.Isbn))
+        {
+            Snackbar.Add("Enter a valid ISBN first.", Severity.Warning);
+            return;
+        }
+
+        var result = await Lookup.LookupIsbnAsync(_form.Isbn!);
+        switch (result.Outcome)
+        {
+            case LookupOutcome.Found:
+                _form.Apply(result.Book!);
+                Snackbar.Add("Details filled in. Check them, then save.", Severity.Success);
+                break;
+            case LookupOutcome.NotFound:
+                Snackbar.Add("No details found online for that ISBN.", Severity.Info);
+                break;
+            default:
+                Snackbar.Add("Couldn't reach the book catalogues. Are you online?", Severity.Warning);
+                break;
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {

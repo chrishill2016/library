@@ -20,6 +20,43 @@ public static class Isbn
         };
     }
 
+    /// <summary>
+    /// The ISBN-13 form of a valid ISBN-10 or ISBN-13, used to compare books
+    /// regardless of which form was typed or scanned. Null when not a valid ISBN.
+    /// </summary>
+    public static string? ToIsbn13(string? isbn)
+    {
+        var digits = Normalize(isbn);
+        if (!IsValid(digits))
+        {
+            return null;
+        }
+
+        if (digits.Length == 13)
+        {
+            return digits;
+        }
+
+        var body = "978" + digits[..9];
+        var sum = 0;
+        for (var i = 0; i < 12; i++)
+        {
+            sum += (body[i] - '0') * (i % 2 == 0 ? 1 : 3);
+        }
+
+        return body + (char)('0' + (10 - sum % 10) % 10);
+    }
+
+    /// <summary>
+    /// True when a scanned EAN-13 barcode is a book ISBN ("Bookland": 978/979 prefix,
+    /// valid checksum). Filters out price codes and other barcodes on the cover.
+    /// </summary>
+    public static bool IsBookBarcode(string? code)
+    {
+        var digits = Normalize(code);
+        return digits.Length == 13 && IsValidIsbn13(digits);
+    }
+
     private static bool IsValidIsbn10(string digits)
     {
         var sum = 0;
@@ -48,7 +85,8 @@ public static class Isbn
 
     private static bool IsValidIsbn13(string digits)
     {
-        if (digits.Contains('X'))
+        // ISBN-13s are "Bookland" EANs: other 13-digit barcodes (prices, groceries) aren't books.
+        if (digits.Contains('X') || !(digits.StartsWith("978") || digits.StartsWith("979")))
         {
             return false;
         }

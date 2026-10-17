@@ -1,3 +1,4 @@
+using Bookshelf.Features.Lookup;
 using Bookshelf.Models;
 
 namespace Bookshelf.Features.Books;
@@ -38,7 +39,20 @@ public sealed class BookForm
         PublishedYear = PublishedYear,
         CoverUrl = CoverUrl,
         Notes = Notes,
+        // Saving the form means a person has checked the details.
+        LookupState = null,
     };
+
+    /// <summary>Fills the form from an online lookup, keeping notes.</summary>
+    public void Apply(BookCandidate found)
+    {
+        Title = found.Title;
+        Author = found.Author;
+        Isbn = found.Isbn ?? Isbn;
+        Publisher = found.Publisher ?? Publisher;
+        PublishedYear = found.PublishedYear ?? PublishedYear;
+        CoverUrl = found.CoverUrl ?? CoverUrl;
+    }
 
     /// <summary>A gentle warning (not a blocker): old books can have odd numbers.</summary>
     public string? IsbnWarning =>
