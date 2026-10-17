@@ -1,4 +1,9 @@
+using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
+using Bookshelf.Features.Library;
+using Bookshelf.Services.Browser;
+using Bookshelf.Services.Firebase;
+using Bookshelf.Services.Storage;
 using Bookshelf.Services.Sync;
 using Bookshelf.Tests.Fakes;
 using Bunit;
@@ -18,6 +23,7 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
     protected FakeRemoteStore Remote { get; } = new() { IsConfigured = false };
     protected FakeConnectivity Connectivity { get; } = new();
     protected FakeTimeProvider Time { get; } = new(TestBooks.Epoch.AddDays(1));
+    protected FakeFirebaseClient Firebase { get; } = new();
 
     protected ComponentTestBase()
     {
@@ -26,6 +32,12 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddSingleton<ISyncService>(_ => new SyncService(Store, Remote, Connectivity, Time));
         Services.AddSingleton(sp => new BookService(Store, sp.GetRequiredService<ISyncService>(), Time));
+        Services.AddSingleton<ILocalStore>(Store);
+        Services.AddSingleton<IConnectivityService>(Connectivity);
+        Services.AddSingleton<IFirebaseClient>(Firebase);
+        Services.AddSingleton<RemoteSession>();
+        Services.AddSingleton<AuthService>();
+        Services.AddSingleton<LibraryService>();
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

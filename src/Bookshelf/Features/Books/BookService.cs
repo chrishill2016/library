@@ -76,11 +76,14 @@ public sealed class BookService : IDisposable
         await _sync.NotifyLocalChangeAsync();
     }
 
-    private void OnRemoteChangesApplied()
+    /// <summary>Drops the cached list after the local store was changed underneath (e.g. cleared).</summary>
+    public void Invalidate()
     {
         _cache = null;
         Changed?.Invoke();
     }
+
+    private void OnRemoteChangesApplied() => Invalidate();
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

@@ -38,10 +38,12 @@ public sealed class SyncService(
         _initialized = true;
         await connectivity.InitializeAsync();
         connectivity.Changed += OnConnectivityChanged;
+        remote.ConfigurationChanged += OnRemoteConfigurationChanged;
 
         SetState(State with
         {
             IsOnline = connectivity.IsOnline,
+            RemoteConfigured = remote.IsConfigured,
             PendingCount = await store.GetOutboxCountAsync(),
             LastSyncUtc = ParseDate(await store.GetSettingAsync(LastSyncKey)),
         });
@@ -53,6 +55,21 @@ public sealed class SyncService(
     {
         SetState(State with { PendingCount = await store.GetOutboxCountAsync() });
         await SyncNowAsync();
+    }
+
+    public async Task ResetAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            await store.RemoveSettingAsync(PullCursorKey);
+            await store.RemoveSettingAsync(LastSyncKey);
+            SetState(State with { LastSyncUtc = null, LastError = null, PendingCount = await store.GetOutboxCountAsync() });
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task<SyncResult> SyncNowAsync(CancellationToken cancellationToken = default)
@@ -187,6 +204,19 @@ public sealed class SyncService(
         }
     }
 
+    private async void OnRemoteConfigurationChanged()
+    {
+        SetState(State with { RemoteConfigured = remote.IsConfigured, LastError = null });
+        try
+        {
+            await SyncNowAsync();
+        }
+        catch (Exception)
+        {
+            // Failures are recorded in State.
+        }
+    }
+
     private void SetState(SyncState state)
     {
         if (state == State)
@@ -204,6 +234,7 @@ public sealed class SyncService(
     public void Dispose()
     {
         connectivity.Changed -= OnConnectivityChanged;
+        remote.ConfigurationChanged -= OnRemoteConfigurationChanged;
         _gate.Dispose();
     }
 }

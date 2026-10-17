@@ -234,6 +234,36 @@ public class SyncServiceTests
         Assert.False(notified);
     }
 
+    [Fact]
+    public async Task Configuring_remote_after_start_syncs_queued_changes()
+    {
+        _remote.IsConfigured = false;
+        await QueueLocalAsync(TestBooks.Make("a"));
+        var sut = CreateSut();
+        await sut.InitializeAsync();
+        Assert.False(sut.State.RemoteConfigured);
+
+        _remote.IsConfigured = true;
+        await WaitUntilAsync(() => sut.State.PendingCount == 0);
+
+        Assert.True(sut.State.RemoteConfigured);
+        Assert.True(_remote.Books.ContainsKey("a"));
+    }
+
+    [Fact]
+    public async Task Reset_forgets_cursor_and_last_sync()
+    {
+        _remote.Seed(TestBooks.Make("r1"));
+        var sut = CreateSut();
+        await sut.SyncNowAsync();
+
+        await sut.ResetAsync();
+
+        Assert.False(_store.Settings.ContainsKey(SyncService.PullCursorKey));
+        Assert.False(_store.Settings.ContainsKey(SyncService.LastSyncKey));
+        Assert.Null(sut.State.LastSyncUtc);
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         for (var i = 0; i < 100 && !condition(); i++)

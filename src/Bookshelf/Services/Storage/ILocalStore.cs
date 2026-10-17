@@ -22,4 +22,9 @@ public interface ILocalStore
     Task<string?> GetSettingAsync(string key);
 
     Task SetSettingAsync(string key, string value);
+
+    Task RemoveSettingAsync(string key);
+
+    /// <summary>Deletes all books and queued changes (used when a different account signs in).</summary>
+    Task ClearLibraryDataAsync();
 }

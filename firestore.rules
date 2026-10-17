@@ -1,0 +1,92 @@
+rules_version = '2';
+
+// Bookshelf security rules.
+// Data: libraries/{libraryId} with members, and libraries/{libraryId}/books/{bookId}.
+// Deploy: paste into Firebase console → Firestore → Rules, or `firebase deploy --only firestore:rules`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function verifiedEmail() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+
+    function isMemberOf(libraryId) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/libraries/$(libraryId)).data.memberUids;
+    }
+
+    function validMember(member) {
+      return member is map
+        && member.keys().hasOnly(['name', 'email'])
+        && member.name is string && member.name.size() <= 200
+        && member.email is string && member.email.size() <= 320;
+    }
+
+    match /libraries/{libraryId} {
+      function isMember() {
+        return signedIn() && request.auth.uid in resource.data.memberUids;
+      }
+
+      function isOwner() {
+        return signedIn() && request.auth.uid == resource.data.ownerUid;
+      }
+
+      function isInvited() {
+        return verifiedEmail() && myEmail() in resource.data.invitedEmails;
+      }
+
+      allow get, list: if isMember() || isInvited();
+
+      // Anyone signed in can start a library with only themselves in it.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'ownerUid', 'memberUids', 'invitedEmails', 'members', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.invitedEmails == []
+        && request.resource.data.members.keys().hasOnly([request.auth.uid])
+        && validMember(request.resource.data.members[request.auth.uid]);
+
+      // The owner can rename and manage invites; membership and ownership stay fixed.
+      allow update: if isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'invitedEmails'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.invitedEmails is list
+        && request.resource.data.invitedEmails.size() <= 20;
+
+      // An invited person can add only themselves, using up only their own invitation.
+      allow update: if isInvited()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids', 'invitedEmails', 'members'])
+        && request.resource.data.memberUids.toSet() == resource.data.memberUids.toSet().union([request.auth.uid].toSet())
+        && request.resource.data.invitedEmails.toSet() == resource.data.invitedEmails.toSet().difference([myEmail()].toSet())
+        && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
+        && validMember(request.resource.data.members[request.auth.uid]);
+
+      allow delete: if false;
+
+      match /books/{bookId} {
+        allow read: if isMemberOf(libraryId);
+
+        // Books are soft-deleted (isDeleted) so the deletion syncs; hard deletes aren't needed.
+        allow create, update: if isMemberOf(libraryId)
+          && request.resource.data.id == bookId
+          && request.resource.data.title is string && request.resource.data.title.size() <= 500
+          && request.resource.data.syncedAt == request.time;
+
+        allow delete: if false;
+      }
+    }
+  }
+}

@@ -36,6 +36,12 @@ public sealed class IndexedDbLocalStore(IJSRuntime js) : ILocalStore, IAsyncDisp
     public async Task SetSettingAsync(string key, string value) =>
         await (await _module.Value).InvokeVoidAsync("put", Settings, new SettingRecord(key, value));
 
+    public async Task RemoveSettingAsync(string key) =>
+        await (await _module.Value).InvokeVoidAsync("remove", Settings, key);
+
+    public async Task ClearLibraryDataAsync() =>
+        await (await _module.Value).InvokeVoidAsync("clear", Books, Outbox);
+
     public async ValueTask DisposeAsync()
     {
         if (_module.IsValueCreated)

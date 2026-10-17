@@ -51,4 +51,17 @@ public sealed class InMemoryLocalStore : ILocalStore
         Settings[key] = value;
         return Task.CompletedTask;
     }
+
+    public Task RemoveSettingAsync(string key)
+    {
+        Settings.Remove(key);
+        return Task.CompletedTask;
+    }
+
+    public Task ClearLibraryDataAsync()
+    {
+        Books.Clear();
+        Outbox.Clear();
+        return Task.CompletedTask;
+    }
 }

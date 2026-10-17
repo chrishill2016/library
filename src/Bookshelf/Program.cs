@@ -1,6 +1,9 @@
 using Bookshelf;
+using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
+using Bookshelf.Features.Library;
 using Bookshelf.Services.Browser;
+using Bookshelf.Services.Firebase;
 using Bookshelf.Services.Storage;
 using Bookshelf.Services.Sync;
 using Bookshelf.Theming;
@@ -24,10 +27,14 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ILocalStore, IndexedDbLocalStore>();
 builder.Services.AddSingleton<IConnectivityService, BrowserConnectivityService>();
 builder.Services.AddSingleton<AppUpdateService>();
-// Phase 2 swaps this for a Firestore-backed store.
-builder.Services.AddSingleton<IRemoteStore, NotConfiguredRemoteStore>();
+builder.Services.AddSingleton(FirebaseOptions.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton<IFirebaseClient, FirebaseClient>();
+builder.Services.AddSingleton<RemoteSession>();
+builder.Services.AddSingleton<IRemoteStore, FirestoreRemoteStore>();
 builder.Services.AddSingleton<ISyncService, SyncService>();
 builder.Services.AddSingleton<BookService>();
+builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<LibraryService>();
 builder.Services.AddSingleton<ThemeService>();
 
 await builder.Build().RunAsync();

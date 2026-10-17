@@ -1,0 +1,67 @@
+@implements IDisposable
+@inject AuthService Auth
+@inject LibraryService Library
+
+@* Sign-in is required: only show the app once a library is ready. *@
+@switch (Library.Status)
+{
+    case LibraryStatus.Ready:
+        @ChildContent
+        break;
+
+    case LibraryStatus.SignedOut when Auth.StartupError is not null:
+        <div class="gate-panel" data-testid="gate-startup-error">
+            <MudText Typo="Typo.h5" HtmlTag="h1">Can't start sign-in</MudText>
+            <MudText Typo="Typo.body1">Bookshelf needs to be online the first time it opens. Please connect and reload.</MudText>
+        </div>
+        break;
+
+    case LibraryStatus.SignedOut:
+        <SignInView />
+        break;
+
+    case LibraryStatus.NeedsSetup:
+        <LibrarySetupView />
+        break;
+
+    case LibraryStatus.OfflineSetup:
+        <div class="gate-panel" data-testid="gate-offline">
+            <MudIcon Icon="@Icons.Material.Filled.CloudOff" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h5" HtmlTag="h1">Almost there</MudText>
+            <MudText Typo="Typo.body1">Connect to the internet once to finish setting up your library.</MudText>
+        </div>
+        break;
+
+    case LibraryStatus.Error:
+        <div class="gate-panel" data-testid="gate-error">
+            <MudText Typo="Typo.h5" HtmlTag="h1">Couldn't open the library</MudText>
+            <MudText Typo="Typo.body2" Class="text-secondary">@Library.Error</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Library.RefreshAsync" Class="mt-3">Try again</MudButton>
+        </div>
+        break;
+
+    default:
+        <div class="gate-panel" data-testid="gate-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <MudText Typo="Typo.body1" Class="font-italic">Opening the library…</MudText>
+        </div>
+        break;
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Library.Changed += OnChanged;
+        Auth.Changed += OnChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Library.Changed -= OnChanged;
+        Auth.Changed -= OnChanged;
+    }
+}
