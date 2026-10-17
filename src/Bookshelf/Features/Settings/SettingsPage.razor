@@ -4,6 +4,7 @@
 @inject ISyncService Sync
 @inject AuthService Auth
 @inject IDialogService Dialogs
+@inject Bookshelf.Features.Photos.PhotoService Photos
 
 <PageTitle>Settings · Bookshelf</PageTitle>
 
@@ -16,9 +17,16 @@
 
 <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
     <MudText Typo="Typo.h6" Class="mb-2">Sync</MudText>
-    <MudText Typo="Typo.body2" Class="mb-3" data-testid="sync-summary">@SyncSummary</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1" data-testid="sync-summary">@SyncSummary</MudText>
+    @if (Photos.PendingCount > 0)
+    {
+        <MudText Typo="Typo.body2" Class="mb-1" data-testid="photo-summary">
+            @(Photos.PendingCount == 1 ? "1 cover photo" : $"{Photos.PendingCount} cover photos") waiting to upload.
+        </MudText>
+    }
+    <div class="mb-2"></div>
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
-               OnClick="() => Sync.SyncNowAsync()" Disabled="@(Sync.State.IsSyncing || !Sync.State.IsOnline || !Sync.State.RemoteConfigured)">Sync now</MudButton>
+               OnClick="SyncNowAsync" Disabled="@(Sync.State.IsSyncing || !Sync.State.IsOnline || !Sync.State.RemoteConfigured)">Sync now</MudButton>
 </MudPaper>
 
 <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
@@ -77,6 +85,12 @@
         var n => $"{n} changes waiting to sync.",
     };
 
+    private async Task SyncNowAsync()
+    {
+        await Sync.SyncNowAsync();
+        await Photos.SyncAsync();
+    }
+
     private async Task SignOutAsync()
     {
         var pending = Sync.State.PendingCount;
@@ -94,6 +108,7 @@
     {
         Themes.Changed += OnChanged;
         Sync.StateChanged += OnChanged;
+        Photos.Changed += OnChanged;
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
@@ -102,5 +117,6 @@
     {
         Themes.Changed -= OnChanged;
         Sync.StateChanged -= OnChanged;
+        Photos.Changed -= OnChanged;
     }
 }

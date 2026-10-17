@@ -3,6 +3,7 @@
 @inject NavigationManager Nav
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
+@inject Bookshelf.Features.Photos.PhotoService Photos
 
 <PageTitle>@(_book?.Title ?? "Book") · Bookshelf</PageTitle>
 
@@ -28,7 +29,17 @@ else
     }
     <MudPaper Class="pa-4 tooled-panel" Elevation="3">
         <div class="book-details">
-            <BookCover Book="_book" Size="BookCover.CoverSize.Large" />
+            <div class="cover-column">
+                <BookCover Book="_book" Size="BookCover.CoverSize.Large" />
+                <div class="cover-actions">
+                    <PhotoButton Label="@(_book.PhotoId is null ? "Photo" : "Replace photo")" Size="Size.Small" OnCaptured="SetPhotoAsync" />
+                    @if (_book.PhotoId is not null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="RemovePhotoAsync"
+                                   data-testid="remove-photo">Remove photo</MudButton>
+                    }
+                </div>
+            </div>
             <div class="book-details-text">
                 <MudText Typo="Typo.h4" HtmlTag="h1">@_book.Title</MudText>
                 @if (!string.IsNullOrEmpty(_book.Author))
@@ -77,6 +88,17 @@ else
         _loading = false;
     }
 
+    private async Task SetPhotoAsync(Bookshelf.Features.Photos.CapturedPhoto photo)
+    {
+        _book = await Photos.SetPhotoAsync(_book!, photo.Id);
+        Snackbar.Add("Cover photo saved.", Severity.Success);
+    }
+
+    private async Task RemovePhotoAsync()
+    {
+        _book = await Photos.RemovePhotoAsync(_book!);
+    }
+
     private async Task DeleteAsync()
     {
         var confirmed = await Dialogs.ShowMessageBoxAsync(
@@ -89,7 +111,7 @@ else
             return;
         }
 
-        await Books.DeleteAsync(_book.Id);
+        await Photos.DeleteBookAsync(_book);
         Snackbar.Add($"Removed “{_book.Title}”.", Severity.Info);
         Nav.NavigateTo("");
     }

@@ -1,6 +1,9 @@
-@if (!string.IsNullOrEmpty(Book.CoverUrl) && !_failed)
+@inject Bookshelf.Features.Photos.PhotoService Photos
+
+@if (CurrentUrl is { } url)
 {
-    <img class="book-cover book-cover-@Size" src="@Book.CoverUrl" alt="Cover of @Book.Title" loading="lazy" @onerror="() => _failed = true" />
+    <img class="book-cover book-cover-@Size" src="@url" alt="Cover of @Book.Title" loading="lazy"
+         @onerror="OnImageError" data-testid="@(_photoUrl is not null ? "cover-photo" : "cover-image")" />
 }
 else
 {
@@ -18,19 +21,54 @@ else
 @code {
     public enum CoverSize { Small, Large }
 
-    private bool _failed;
-    private string? _lastUrl;
+    private bool _onlineCoverFailed;
+    private string? _lastCoverUrl;
+    private string? _lastPhotoId;
+    private string? _photoUrl;
 
     [Parameter, EditorRequired] public Book Book { get; set; } = default!;
 
     [Parameter] public CoverSize Size { get; set; } = CoverSize.Small;
 
-    protected override void OnParametersSet()
+    /// <summary>Our own photo wins; otherwise the online cover; otherwise the placeholder.</summary>
+    private string? CurrentUrl =>
+        _photoUrl ?? (!string.IsNullOrEmpty(Book.CoverUrl) && !_onlineCoverFailed ? Book.CoverUrl : null);
+
+    protected override async Task OnParametersSetAsync()
     {
-        if (_lastUrl != Book.CoverUrl)
+        if (_lastCoverUrl != Book.CoverUrl)
         {
-            _lastUrl = Book.CoverUrl;
-            _failed = false;
+            _lastCoverUrl = Book.CoverUrl;
+            _onlineCoverFailed = false;
+        }
+
+        if (_lastPhotoId != Book.PhotoId)
+        {
+            _lastPhotoId = Book.PhotoId;
+            _photoUrl = null;
+            if (Book.PhotoId is { } photoId)
+            {
+                try
+                {
+                    _photoUrl = await Photos.GetUrlAsync(photoId);
+                }
+                catch (Exception)
+                {
+                    // Not on this device and not downloadable right now: fall back to the online cover.
+                }
+            }
+        }
+    }
+
+    private void OnImageError()
+    {
+        if (_photoUrl is not null)
+        {
+            _photoUrl = null;
+        }
+        else
+        {
+            _onlineCoverFailed = true;
         }
     }
 }

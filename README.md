@@ -6,10 +6,11 @@ A family library app for keeping track of the books we own. It's an installable,
 - Sign in with Google, then share one library with family. The owner invites people by email, and they join when they sign in.
 - **Scan to add:** point the camera at the barcode and the book is looked up (title, author, publisher, year, cover) and added. There's a rapid mode with undo and a "confirm each book" mode. Duplicates are flagged, not re-added.
 - **Find online** by title or author for books without a barcode, or look up an ISBN from the add form.
+- **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). It's trimmed to a book shape, shrunk to about 800px, works offline and syncs to the other phone.
 - Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname or date added.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
 
-See [ROADMAP.md](ROADMAP.md) for what's next (cover photos, ratings).
+See [ROADMAP.md](ROADMAP.md) for what's next (ratings and the reading log).
 
 ## Stack
 
@@ -27,6 +28,7 @@ src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
   Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
   Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
+  Features/Photos/      PhotoService, PhotoButton, IPhotoStore (wwwroot/js/photos.js)
   Features/Account/     AuthService, sign-in screen
   Features/Library/     LibraryService (create, invite, join), setup screen, library settings
   Features/Settings/    Library, sync, theme, account, about
@@ -38,8 +40,9 @@ src/Bookshelf/
   Theming/              AppTheme, ThemeRegistry, ThemeService
   Models/               Book, OutboxEntry, SyncState
 tests/Bookshelf.Tests/  xUnit + bUnit tests
-tests/firestore-rules/  Security rule tests (Node + Firestore emulator)
+tests/firestore-rules/  Security rule tests for Firestore and Storage (Node + emulators)
 firestore.rules         Firestore security rules
+storage.rules           Storage security rules (cover photos)
 .github/workflows/      ci.yml (PRs) and deploy.yml (main → GitHub Pages)
 ```
 
@@ -69,6 +72,19 @@ The remote is Firestore (`FirestoreRemoteStore`):
 - **Covers** are stored as links. The service worker caches CORS-readable cover images (up to 2,000) so they show offline. API calls bypass the service worker.
 - **Google Books API key:** `BookLookup:GoogleBooksApiKey` in `appsettings.json` (currently the Firebase browser key). The Books API must be enabled in the Google Cloud project, and allowed on that key, or Google requests fail and Open Library is used alone.
 
+## Cover photos
+
+- **Taking a photo:** the Photo button (book page and edit form) opens the phone's camera or gallery.
+- **Processing** happens in `photos.js`:
+  - EXIF rotation is applied, the photo is centre-trimmed to 2:3 and scaled to at most 800px, then saved as an 80% JPEG (typically 50–150 KB).
+  - It's stored in IndexedDB (`photos` store) and shown from there.
+- **Book field:** `PhotoId` names the photo; your own photo is shown instead of `CoverUrl`.
+- **Upload:** photos attached to a saved book upload to `libraries/{libraryId}/covers/{photoId}.jpg` when online (`PhotoService`).
+  - Uploads happen on save, on reconnect, when the library opens, and with "Sync now".
+  - Photos taken but never saved are dropped after a day.
+- **Replacing or removing:** a replaced or removed photo, or one belonging to a deleted book, is deleted from Storage. A tombstone record keeps the delete queued while offline.
+- **Other phones** download a photo the first time it's shown and keep it in IndexedDB for offline use.
+
 ## Accounts and sharing
 
 - Sign-in is required. A user's sign-in and library are remembered on the device, so the app opens offline.
@@ -83,10 +99,14 @@ The remote is Firestore (`FirestoreRemoteStore`):
 
 - **Project:** `bookshelf-3a8ee`. The web config is in `src/Bookshelf/wwwroot/appsettings.json`; it's public by design, and the rules protect the data.
 - **Authorized domains:** Authentication → Settings must include `chrishill2016.github.io` and `localhost`.
-- **Deploying rules:** paste `firestore.rules` into Firestore → Rules → Publish, or run `firebase deploy --only firestore:rules`.
+- **Deploying rules:**
+  - Paste `firestore.rules` into Firestore → Rules → Publish, and `storage.rules` into Storage → Rules → Publish.
+  - Or run `firebase deploy --only firestore:rules,storage`.
+  - The Storage rules read library membership from Firestore. On first publish, the console asks to let Storage read Firestore: allow it.
 - **Rules tests:** `cd tests/firestore-rules && npm ci && npm test` (needs Java). CI runs them on every PR and before every deploy.
+  - In sandboxes with an HTTP proxy, run them with the proxy variables and `JAVA_TOOL_OPTIONS` unset. The Storage emulator's Firestore lookups otherwise fail.
 - **Updating the SDK:** `tools/update-firebase.sh <version>`.
-- **Local emulator testing:** add `"EmulatorHost": "127.0.0.1"` under `Firebase` in `appsettings.json` (don't commit it), then run `firebase emulators:start --only auth,firestore`.
+- **Local emulator testing:** add `"EmulatorHost": "127.0.0.1"` under `Firebase` in `appsettings.json` (don't commit it), then run `firebase emulators:start --only auth,firestore,storage`.
 
 ## Themes
 

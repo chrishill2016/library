@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "firebase --config ../../firebase.json emulators:exec --only firestore --project demo-bookshelf \"node --test rules.test.js\""
+    "test": "firebase --config ../../firebase.json emulators:exec --only firestore,storage --project demo-bookshelf \"node --test --test-concurrency=1 rules.test.js storage.test.js\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

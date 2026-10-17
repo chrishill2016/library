@@ -252,6 +252,41 @@ h1:focus {
 }
 
 /* Details */
+.cover-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
+.cover-actions,
+.edit-cover-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.edit-cover {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.edit-cover-actions {
+    justify-content: flex-start;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
 .book-details {
     display: flex;
     gap: 1.5rem;

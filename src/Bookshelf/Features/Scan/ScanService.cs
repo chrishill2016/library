@@ -90,7 +90,7 @@ public sealed class ScanService(BookService books, IBookLookup lookup, IConnecti
     public async Task<ScanItem> AddAnotherCopyAsync(ScanItem duplicate)
     {
         var existing = duplicate.Book ?? throw new InvalidOperationException("Not a duplicate.");
-        var copy = await books.SaveAsync(existing with { Id = Book.NewId(), AddedUtc = default, Notes = null });
+        var copy = await books.SaveAsync(existing with { Id = Book.NewId(), AddedUtc = default, Notes = null, PhotoId = null });
         return duplicate with { Status = ScanStatus.Added, Book = copy };
     }
 

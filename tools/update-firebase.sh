@@ -11,7 +11,7 @@ trap 'rm -rf "$WORK"' EXIT
 (cd "$WORK" && npm pack "firebase@${VERSION}" --silent >/dev/null && tar -xzf firebase-*.tgz)
 
 rm -rf "$DEST" && mkdir -p "$DEST"
-for f in firebase-app.js firebase-auth.js firebase-firestore-lite.js; do
+for f in firebase-app.js firebase-auth.js firebase-firestore-lite.js firebase-storage.js; do
     # Point cross-module imports at the local copy and drop source map references.
     sed -e "s#https://www.gstatic.com/firebasejs/${VERSION}/firebase-app.js#./firebase-app.js#g" \
         -e '/sourceMappingURL=/d' \

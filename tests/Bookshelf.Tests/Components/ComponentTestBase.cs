@@ -2,6 +2,7 @@ using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
 using Bookshelf.Features.Library;
 using Bookshelf.Features.Lookup;
+using Bookshelf.Features.Photos;
 using Bookshelf.Features.Scan;
 using Bookshelf.Services.Browser;
 using Bookshelf.Services.Firebase;
@@ -28,6 +29,7 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
     protected FakeFirebaseClient Firebase { get; } = new();
     protected FakeBookLookup Lookup { get; } = new();
     protected FakeBarcodeScanner Scanner { get; } = new();
+    protected FakePhotoStore Photos { get; } = new();
 
     protected ComponentTestBase()
     {
@@ -46,6 +48,8 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<PendingLookupService>();
         Services.AddSingleton<ScanService>();
         Services.AddSingleton<IBarcodeScanner>(Scanner);
+        Services.AddSingleton<IPhotoStore>(Photos);
+        Services.AddSingleton<PhotoService>();
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

@@ -12,7 +12,10 @@
   - Google Books + Open Library lookup.
   - Offline scans filled in automatically later.
   - Find online by title/author, and covers cached for offline use.
-- [ ] **Phase 4: Cover photos.** Photograph a cover when no artwork is found. Store it in Firebase Storage (we're on the Blaze plan), resized on the device to about 800px JPEG before upload, to keep storage and bandwidth costs small.
+- [x] **Phase 4: Cover photos.**
+  - Photo from the book page or edit form, auto-trimmed to 2:3 and shrunk to about 800px JPEG.
+  - Works offline, uploads to Firebase Storage, and syncs to the other phone.
+  - Storage rules allow members only, with emulator tests.
 - [ ] **Phase 5: Reviews and reading log.** Personal 1–5 star rating, review and "read on" dates for each of us per book, visible to the other.
 
 ## Later / ideas
@@ -24,4 +27,5 @@
 - Live updates (Firestore listeners) instead of syncing on start, after edits, on reconnect and with "Sync now".
 - Export or backup of the collection (CSV or JSON).
 - Bulk "retry lookup" for books flagged as not found.
+- "Take cover photo" straight from the scan list for books not found online; shelf filter for books without covers.
 - Barcode scanning on iPhone (needs a JS barcode library, as Safari has no `BarcodeDetector`).
