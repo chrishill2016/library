@@ -24,6 +24,10 @@
 
 ## Later / ideas
 
+- **Where a book is** (beyond on the shelf / wishlist):
+  - **Sold or given away:** keep the book, its ratings and reading history, but take it off the shelf (e.g. "Sold, March 2027"), with a filter to see past books.
+  - **Lent out / borrowed:** books we've lent (to whom, since when) and books we've borrowed (from whom, from a library, due back), with reminders and "Returned".
+  - **Kindle (and other e-books):** a format on each book (paper, Kindle, audiobook) so e-books can be logged and rated without counting as on the shelf, plus a filter by format.
 - Shelves or tags (e.g. "Fiction", "Kids", "Loft box 3") and filtering by them.
 - More themes ("bindings"): Parchment (light), Library at Night, Cloth-bound Green.
 - Firebase budget alert, so costs never get silly.
