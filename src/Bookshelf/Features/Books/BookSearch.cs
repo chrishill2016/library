@@ -9,6 +9,20 @@ public enum BookSort
     Title,
     Author,
     RecentlyAdded,
+    MyRating,
+}
+
+/// <summary>Shelf filter by the signed-in person's reading.</summary>
+public enum ReadingFilter
+{
+    All,
+    Reading,
+    WantToRead,
+    Read,
+    NotRead,
+
+    /// <summary>Books we want but don't own yet (the only filter that shows them).</summary>
+    Wishlist,
 }
 
 /// <summary>In-memory search; plenty fast for a few thousand books.</summary>
@@ -36,13 +50,42 @@ public static class BookSearch
         });
     }
 
-    public static IEnumerable<Book> Sort(IEnumerable<Book> books, BookSort sort) => sort switch
+    /// <summary>
+    /// Sorts the shelf. <paramref name="mine"/> gives the signed-in person's reading of a book
+    /// (for <see cref="BookSort.MyRating"/>: highest first, unrated last, then by title).
+    /// </summary>
+    public static IEnumerable<Book> Sort(IEnumerable<Book> books, BookSort sort, Func<Book, Reading?>? mine = null) => sort switch
     {
         BookSort.Author => books.OrderBy(b => AuthorSortKey(b.Author), StringComparer.OrdinalIgnoreCase)
                                 .ThenBy(b => TitleSortKey(b.Title), StringComparer.OrdinalIgnoreCase),
         BookSort.RecentlyAdded => books.OrderByDescending(b => b.AddedUtc),
+        BookSort.MyRating => books.OrderByDescending(b => mine?.Invoke(b)?.Rating ?? 0)
+                                  .ThenBy(b => TitleSortKey(b.Title), StringComparer.OrdinalIgnoreCase),
         _ => books.OrderBy(b => TitleSortKey(b.Title), StringComparer.OrdinalIgnoreCase),
     };
+
+    /// <summary>
+    /// Keeps books matching the signed-in person's reading. "Read" means marked read or with a read date;
+    /// "Not read" is everything else (including want-to-read and currently reading).
+    /// Wishlist books (not owned yet) only appear under <see cref="ReadingFilter.Wishlist"/>.
+    /// </summary>
+    public static IEnumerable<Book> FilterByReading(IEnumerable<Book> books, ReadingFilter filter, Func<Book, Reading?> mine)
+    {
+        if (filter == ReadingFilter.Wishlist)
+        {
+            return books.Where(b => b.OnWishlist);
+        }
+
+        var shelf = books.Where(b => !b.OnWishlist);
+        return filter switch
+        {
+            ReadingFilter.Reading => shelf.Where(b => mine(b)?.Status == ReadingStatus.Reading),
+            ReadingFilter.WantToRead => shelf.Where(b => mine(b)?.Status == ReadingStatus.WantToRead),
+            ReadingFilter.Read => shelf.Where(b => mine(b)?.HasRead == true),
+            ReadingFilter.NotRead => shelf.Where(b => mine(b)?.HasRead != true),
+            _ => shelf,
+        };
+    }
 
     /// <summary>Library-style title key: "The Hobbit" files under H.</summary>
     public static string TitleSortKey(string title)

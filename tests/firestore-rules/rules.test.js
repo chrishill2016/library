@@ -206,3 +206,84 @@ describe('books', () => {
         await assertFails(deleteDoc(doc(db, 'libraries', LIB, 'books', 'b1')));
     });
 });
+
+describe('readings', () => {
+    const joinAsWife = () => updateDoc(doc(as(WIFE), 'libraries', LIB), {
+        memberUids: arrayUnion(WIFE.uid),
+        invitedEmails: arrayRemove(WIFE.email),
+        [`members.${WIFE.uid}`]: { name: WIFE.name, email: WIFE.email },
+    });
+
+    function reading(bookId, user, overrides = {}) {
+        return {
+            id: `${bookId}_${user.uid}`, bookId, uid: user.uid, readerName: user.name,
+            rating: 4, review: 'Lovely.', status: 'read', reads: [{ year: 2015, month: 3, day: null }],
+            lastModified: '2026-10-17T08:00:00+00:00', syncedAt: serverTimestamp(), ...overrides,
+        };
+    }
+
+    const ref = (db, bookId, user) => doc(db, 'libraries', LIB, 'readings', `${bookId}_${user.uid}`);
+
+    it('members write their own reading and everyone in the library can read it', async () => {
+        await seedLibrary([WIFE.email]);
+        await joinAsWife();
+        await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS)));
+        await assertSucceeds(getDoc(ref(as(WIFE), 'b1', CHRIS)));
+        await assertSucceeds(getDocs(query(collection(as(WIFE), 'libraries', LIB, 'readings'),
+            where('syncedAt', '>', Timestamp.fromMillis(0)), orderBy('syncedAt'))));
+    });
+
+    it('allows a reading-list position (whole or fractional)', async () => {
+        await seedLibrary();
+        await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS, { status: 'want', queueOrder: 3 })));
+        await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS, { status: 'want', queueOrder: 2.5 })));
+    });
+
+    it('allows an empty reading (everything cleared)', async () => {
+        await seedLibrary();
+        await assertSucceeds(setDoc(ref(as(CHRIS), 'b1', CHRIS),
+            reading('b1', CHRIS, { rating: null, review: null, status: null, reads: [] })));
+    });
+
+    it('nobody can write someone else\'s reading', async () => {
+        await seedLibrary([WIFE.email]);
+        await joinAsWife();
+        await setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS));
+        // Overwrite Chris's document, or claim to be Chris in a document of their own.
+        await assertFails(setDoc(ref(as(WIFE), 'b1', CHRIS), reading('b1', CHRIS, { rating: 1 })));
+        await assertFails(setDoc(ref(as(WIFE), 'b1', WIFE), reading('b1', WIFE, { uid: CHRIS.uid })));
+        await assertFails(setDoc(ref(as(WIFE), 'b1', WIFE), reading('b1', WIFE, { id: 'b1_other' })));
+        await assertFails(setDoc(ref(as(WIFE), 'b1', WIFE), reading('b2', WIFE, { id: 'b1_wife' })));
+    });
+
+    it('non-members cannot read or write readings', async () => {
+        await seedLibrary([WIFE.email]);
+        await setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS));
+        await assertFails(getDoc(ref(as(STRANGER), 'b1', CHRIS)));
+        await assertFails(getDoc(ref(as(WIFE), 'b1', CHRIS)));
+        await assertFails(setDoc(ref(as(STRANGER), 'b1', STRANGER), reading('b1', STRANGER)));
+    });
+
+    it('rejects bad ratings, statuses, oversized fields and extra keys', async () => {
+        await seedLibrary();
+        const db = as(CHRIS);
+        for (const bad of [
+            { rating: 0 }, { rating: 6 }, { rating: 3.5 }, { rating: '5' },
+            { status: 'abandoned' },
+            { review: 'x'.repeat(10001) },
+            { reads: 'often' }, { reads: Array.from({ length: 101 }, () => ({ year: 2000 })) },
+            { readerName: 'x'.repeat(201) },
+            { queueOrder: 'first' },
+            { extra: true },
+            { syncedAt: Timestamp.fromMillis(1) },
+        ]) {
+            await assertFails(setDoc(ref(db, 'b1', CHRIS), reading('b1', CHRIS, bad)));
+        }
+    });
+
+    it('readings cannot be hard-deleted', async () => {
+        await seedLibrary();
+        await setDoc(ref(as(CHRIS), 'b1', CHRIS), reading('b1', CHRIS));
+        await assertFails(deleteDoc(ref(as(CHRIS), 'b1', CHRIS)));
+    });
+});

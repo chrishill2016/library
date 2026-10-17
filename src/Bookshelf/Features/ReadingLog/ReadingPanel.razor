@@ -1,0 +1,271 @@
+@implements IDisposable
+@inject ReadingService Readings
+@inject TimeProvider Time
+@inject ISnackbar Snackbar
+
+@* The signed-in person's rating, status, read dates and review for a book, then everyone else's. *@
+@if (_mine is not null)
+{
+    <MudPaper Class="pa-4 mt-4 tooled-panel" Elevation="3" data-testid="my-reading">
+        <MudText Typo="Typo.h6" Class="mb-2">Your reading</MudText>
+
+        <div class="status-buttons mb-3" role="group" aria-label="Status">
+            @foreach (var (status, label) in Statuses)
+            {
+                var selected = _mine.Status == status;
+                <MudButton Size="Size.Small" Variant="@(selected ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+                           aria-pressed="@(selected ? "true" : "false")" Disabled="_busy" OnClick="() => SetStatusAsync(selected ? null : status)"
+                           data-testid="@($"status-{status}")">@label</MudButton>
+            }
+        </div>
+
+        @if (_queuePosition is { } position)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3" data-testid="queue-position">
+                @(position == 1 ? "Next up" : $"Number {position}") on <MudLink Href="reading-list">your reading list</MudLink>.
+            </MudText>
+        }
+
+        <div class="reading-row mb-3">
+            <MudText Typo="Typo.body2" Class="reading-label">Your rating</MudText>
+            <StarRating Value="_mine.Rating" ValueChanged="SetRatingAsync" Disabled="_busy" Label="Your rating" TestId="my-rating" />
+        </div>
+
+        <div class="reading-row mb-1">
+            <MudText Typo="Typo.body2" Class="reading-label">Read</MudText>
+            <div class="read-dates" data-testid="my-reads">
+                @if (_mine.Reads.Count == 0 && !_adding)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary">Not yet recorded</MudText>
+                }
+                @foreach (var date in _mine.Reads)
+                {
+                    <span class="read-date">
+                        @date
+                        <button type="button" class="read-date-remove" aria-label="Remove @date" disabled="@_busy"
+                                @onclick="() => RemoveReadAsync(date)" data-testid="remove-read">×</button>
+                    </span>
+                }
+            </div>
+        </div>
+        @if (_adding)
+        {
+            <div class="add-read mb-2" data-testid="add-read-form">
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Today"
+                           Disabled="_busy" OnClick="FinishedTodayAsync" data-testid="read-today">Finished today</MudButton>
+                <MudText Typo="Typo.caption" Class="text-secondary">or as much as you remember:</MudText>
+                <div class="add-read-fields">
+                    <MudNumericField T="int?" @bind-Value="_year" Label="Year" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Min="1900" Max="2200" HideSpinButtons="true" Class="read-year" data-testid="read-year" />
+                    <MudSelect T="int?" @bind-Value="_month" Label="Month" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Clearable="true" Class="read-month" data-testid="read-month">
+                        @for (var m = 1; m <= 12; m++)
+                        {
+                            var month = m;
+                            <MudSelectItem T="int?" Value="month">@MonthName(month)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudNumericField T="int?" @bind-Value="_day" Label="Day" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Min="1" Max="31" HideSpinButtons="true" Disabled="@(_month is null)" Class="read-day"
+                                     data-testid="read-day" />
+                </div>
+                @if (_dateError is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error" data-testid="read-error">@_dateError</MudText>
+                }
+                <div class="d-flex gap-2">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => _adding = false">Cancel</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy"
+                               OnClick="AddReadAsync" data-testid="read-add">Add date</MudButton>
+                </div>
+            </div>
+        }
+        else
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="StartAdding" Class="mb-2" data-testid="add-read">Add a date read</MudButton>
+        }
+
+        <MudTextField T="string" @bind-Value="_review" Label="Your review" Variant="Variant.Outlined" Lines="3"
+                      MaxLength="ReadingService.MaxReviewLength" Immediate="true" Class="mt-2"
+                      data-testid="review" />
+        @if (ReviewChanged)
+        {
+            <div class="d-flex justify-end gap-2 mt-1">
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => _review = _mine.Review">Undo</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
+                           OnClick="SaveReviewAsync" data-testid="save-review">Save review</MudButton>
+            </div>
+        }
+    </MudPaper>
+
+    @foreach (var other in _others)
+    {
+        <MudPaper Class="pa-4 mt-4 tooled-panel" Elevation="1" data-testid="other-reading">
+            <MudText Typo="Typo.h6" Class="mb-1">@(string.IsNullOrWhiteSpace(other.ReaderName) ? "Someone" : other.ReaderName)</MudText>
+            <div class="reading-row">
+                @if (other.Rating is not null)
+                {
+                    <StarRating Value="other.Rating" ReadOnly="true" Size="Size.Small" />
+                }
+                @* "Read" is implied by the dates below. *@
+                @if (other.Status is { } status && !(status == ReadingStatus.Read && other.Reads.Count > 0))
+                {
+                    <span class="status-badge status-@status">@ReadingStatus.Label(status)</span>
+                }
+            </div>
+            @if (other.Reads.Count > 0)
+            {
+                <MudText Typo="Typo.body2" Class="mt-1 text-secondary">Read @string.Join(", ", other.Reads)</MudText>
+            }
+            @if (!string.IsNullOrEmpty(other.Review))
+            {
+                <MudText Typo="Typo.body1" Class="mt-2 review-text">@other.Review</MudText>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    private static readonly (string Status, string Label)[] Statuses =
+    [
+        (ReadingStatus.WantToRead, "Want to read"),  // = on the reading list
+        (ReadingStatus.Reading, "Reading"),
+        (ReadingStatus.Read, "Read"),
+    ];
+
+    private Reading? _mine;
+    private int? _queuePosition;
+    private IReadOnlyList<Reading> _others = [];
+    private string? _review;
+    private bool _busy;
+    private bool _adding;
+    private int? _year;
+    private int? _month;
+    private int? _day;
+    private string? _dateError;
+
+    [Parameter, EditorRequired] public string BookId { get; set; } = "";
+
+    private bool ReviewChanged => (string.IsNullOrWhiteSpace(_review) ? null : _review.Trim()) != _mine?.Review;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Readings.Changed -= OnReadingsChanged;
+        Readings.Changed += OnReadingsChanged;
+        await LoadAsync(resetReview: true);
+    }
+
+    private async Task LoadAsync(bool resetReview)
+    {
+        if (Readings.MyUid is null)
+        {
+            return;
+        }
+
+        var keepDraft = !resetReview && ReviewChanged;
+        _mine = await Readings.GetMyReadingAsync(BookId);
+        _others = await Readings.GetOthersAsync(BookId);
+        await LoadQueuePositionAsync();
+        if (!keepDraft)
+        {
+            _review = _mine.Review;
+        }
+    }
+
+    private async Task SetStatusAsync(string? status)
+    {
+        if (await SaveAsync(() => Readings.SetStatusAsync(BookId, status)))
+        {
+            await LoadQueuePositionAsync();
+        }
+    }
+
+    private async Task LoadQueuePositionAsync()
+    {
+        var index = _mine?.IsQueued == true
+            ? (await Readings.GetQueueAsync(_mine.Uid)).Select(r => r.BookId).ToList().IndexOf(BookId)
+            : -1;
+        _queuePosition = index >= 0 ? index + 1 : null;
+    }
+
+    private Task SetRatingAsync(int? rating) => SaveAsync(() => Readings.SetRatingAsync(BookId, rating));
+
+    private Task RemoveReadAsync(ReadDate date) => SaveAsync(() => Readings.RemoveReadAsync(BookId, date));
+
+    private async Task SaveReviewAsync()
+    {
+        if (await SaveAsync(() => Readings.SetReviewAsync(BookId, _review)))
+        {
+            _review = _mine!.Review;
+            Snackbar.Add("Review saved.", Severity.Success);
+        }
+    }
+
+    private void StartAdding()
+    {
+        _adding = true;
+        _year = DateOnly.FromDateTime(Time.GetLocalNow().DateTime).Year;
+        _month = null;
+        _day = null;
+        _dateError = null;
+    }
+
+    private Task FinishedTodayAsync() => AddAsync(ReadDate.On(DateOnly.FromDateTime(Time.GetLocalNow().DateTime)));
+
+    private Task AddReadAsync()
+    {
+        if (_year is null)
+        {
+            _dateError = "Enter at least the year.";
+            return Task.CompletedTask;
+        }
+
+        var date = new ReadDate(_year.Value, _month, _month is null ? null : _day);
+        if (!date.IsValid)
+        {
+            _dateError = "That isn't a real date.";
+            return Task.CompletedTask;
+        }
+
+        return AddAsync(date);
+    }
+
+    private async Task AddAsync(ReadDate date)
+    {
+        if (await SaveAsync(() => Readings.AddReadAsync(BookId, date)))
+        {
+            _adding = false;
+        }
+    }
+
+    private async Task<bool> SaveAsync(Func<Task<Reading>> save)
+    {
+        _busy = true;
+        try
+        {
+            _mine = await save();
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+            return false;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string MonthName(int month) =>
+        System.Globalization.CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(month);
+
+    private void OnReadingsChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync(resetReview: false);
+        StateHasChanged();
+    });
+
+    public void Dispose() => Readings.Changed -= OnReadingsChanged;
+}

@@ -27,6 +27,17 @@ else
                 : "This ISBN wasn't found online. Tap Edit to add the title and author.")
         </MudAlert>
     }
+    @if (_book.OnWishlist)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.BookmarkBorder" Class="mb-3"
+                  data-testid="wishlist-banner">
+            <div class="wishlist-banner">
+                <span>On the wishlist: not on the shelf yet.</span>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="MoveToShelfAsync"
+                           data-testid="move-to-shelf">Got it: put it on the shelf</MudButton>
+            </div>
+        </MudAlert>
+    }
     <MudPaper Class="pa-4 tooled-panel" Elevation="3">
         <div class="book-details">
             <div class="cover-column">
@@ -73,6 +84,7 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" Href="@($"books/{_book.Id}/edit")">Edit</MudButton>
         </div>
     </MudPaper>
+    <ReadingPanel BookId="@_book.Id" />
 }
 
 @code {
@@ -97,6 +109,12 @@ else
     private async Task RemovePhotoAsync()
     {
         _book = await Photos.RemovePhotoAsync(_book!);
+    }
+
+    private async Task MoveToShelfAsync()
+    {
+        _book = await Books.MoveToShelfAsync(_book!.Id) ?? _book;
+        Snackbar.Add($"“{_book.Title}” is on the shelf.", Severity.Success);
     }
 
     private async Task DeleteAsync()

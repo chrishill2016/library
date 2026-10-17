@@ -16,10 +16,18 @@
   - Photo from the book page or edit form (camera or gallery), cropped by dragging corners from a guessed outline and straightened, shrunk to about 800px JPEG.
   - Works offline, uploads to Firebase Storage, and syncs to the other phone.
   - Storage rules allow members only, with emulator tests.
-- [ ] **Phase 5: Reviews and reading log.** Personal 1–5 star rating, review and "read on" dates for each of us per book, visible to the other.
+- [x] **Phase 5: Reviews and reading log.**
+  - Personal 1–5 stars, review, status (Want to read / Reading / Read) and read dates (day, month or just year) per book, visible to the other person.
+  - Shelf shows your stars and status, pins books you're reading, filters by status and sorts by your rating.
+  - Rules let each person write only their own reading, with emulator tests.
+  - Reading lists: an ordered "to read next" list each (drag to reorder), with wishlist books we don't own yet.
 
 ## Later / ideas
 
+- **Where a book is** (beyond on the shelf / wishlist):
+  - **Sold or given away:** keep the book, its ratings and reading history, but take it off the shelf (e.g. "Sold, March 2027"), with a filter to see past books.
+  - **Lent out / borrowed:** books we've lent (to whom, since when) and books we've borrowed (from whom, from a library, due back), with reminders and "Returned".
+  - **Kindle (and other e-books):** a format on each book (paper, Kindle, audiobook) so e-books can be logged and rated without counting as on the shelf, plus a filter by format.
 - Shelves or tags (e.g. "Fiction", "Kids", "Loft box 3") and filtering by them.
 - More themes ("bindings"): Parchment (light), Library at Night, Cloth-bound Green.
 - Firebase budget alert, so costs never get silly.
@@ -28,4 +36,6 @@
 - Export or backup of the collection (CSV or JSON).
 - Bulk "retry lookup" for books flagged as not found.
 - "Take cover photo" straight from the scan list for books not found online; shelf filter for books without covers.
+- Reading stats: books read per year, and a "year in books" page.
+- Show the other person's stars on the shelf too, or a "we both loved it" filter.
 - Barcode scanning on iPhone (needs a JS barcode library, as Safari has no `BarcodeDetector`).

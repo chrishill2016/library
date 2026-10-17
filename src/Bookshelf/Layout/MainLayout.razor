@@ -23,6 +23,8 @@
             @if (Library.Status == LibraryStatus.Ready)
             {
                 <SyncStatusIndicator />
+                <MudIconButton Icon="@Icons.Material.Filled.Bookmarks" Color="Color.Inherit" Href="reading-list" aria-label="Reading list"
+                               data-testid="reading-list-link" />
                 <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Href="settings" aria-label="Settings" />
             }
         </MudAppBar>

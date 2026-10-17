@@ -1,6 +1,7 @@
 @page "/find"
 @inject IBookLookup Lookup
 @inject BookService Books
+@inject ReadingService Readings
 @inject IConnectivityService Connectivity
 @inject ISnackbar Snackbar
 
@@ -9,7 +10,10 @@
 <MudButton Href="./" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">The Shelf</MudButton>
 
 <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Find a book</MudText>
-<MudText Typo="Typo.body2" Class="text-secondary mb-3">For books without a barcode: search by title and/or author.</MudText>
+<MudText Typo="Typo.body2" Class="text-secondary mb-3">
+    For books without a barcode, or ones you'd like to read but don't own yet: search by title and/or author.
+    “Wishlist” adds a book to your reading list without putting it on the shelf.
+</MudText>
 
 <div class="isbn-entry">
     <MudTextField T="string" @bind-Value="_query" Label="Title, author, or both" Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -51,17 +55,19 @@ else if (_results is not null)
                     <div class="scan-actions">
                         @if (result.AddedId is { } addedId)
                         {
-                            <MudText Typo="Typo.caption" Class="scan-status">Added</MudText>
+                            <MudText Typo="Typo.caption" Class="scan-status">@(result.AddedToWishlist ? "On your reading list" : "Added")</MudText>
                             <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{addedId}")">View</MudButton>
                         }
-                        else if (result.ExistingId is { } existingId)
+                        else if (result.Existing is { } existing)
                         {
-                            <MudText Typo="Typo.caption" Class="scan-status">Already on the shelf</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{existingId}")">View</MudButton>
+                            <MudText Typo="Typo.caption" Class="scan-status">@(existing.OnWishlist ? "On the wishlist" : "Already on the shelf")</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"books/{existing.Id}")">View</MudButton>
                         }
                         else
                         {
-                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddAsync(result)" data-testid="find-add">Add</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddAsync(result, wishlist: false)" data-testid="find-add">Add</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.BookmarkAdd"
+                                       OnClick="() => AddAsync(result, wishlist: true)" data-testid="find-wishlist">Wishlist</MudButton>
                         }
                     </div>
                 </div>
@@ -79,8 +85,9 @@ else if (_results is not null)
     private sealed class Result(BookCandidate candidate)
     {
         public BookCandidate Candidate { get; } = candidate;
-        public string? ExistingId { get; set; }
+        public Book? Existing { get; set; }
         public string? AddedId { get; set; }
+        public bool AddedToWishlist { get; set; }
     }
 
     private async Task OnKeyUp(KeyboardEventArgs e)
@@ -108,7 +115,7 @@ else if (_results is not null)
             foreach (var candidate in found)
             {
                 var existing = candidate.Isbn is { } isbn ? await Books.FindByIsbnAsync(isbn) : null;
-                results.Add(new Result(candidate) { ExistingId = existing?.Id });
+                results.Add(new Result(candidate) { Existing = existing });
             }
 
             _results = results;
@@ -119,10 +126,16 @@ else if (_results is not null)
         }
     }
 
-    private async Task AddAsync(Result result)
+    private async Task AddAsync(Result result, bool wishlist)
     {
-        var saved = await Books.SaveAsync(result.Candidate.ToNewBook());
+        var saved = await Books.SaveAsync(result.Candidate.ToNewBook() with { OnWishlist = wishlist });
         result.AddedId = saved.Id;
-        Snackbar.Add($"Added “{saved.Title}”.", Severity.Success);
+        result.AddedToWishlist = wishlist;
+        if (wishlist && Readings.MyUid is not null)
+        {
+            await Readings.SetStatusAsync(saved.Id, ReadingStatus.WantToRead);
+        }
+
+        Snackbar.Add(wishlist ? $"Added “{saved.Title}” to your reading list." : $"Added “{saved.Title}”.", Severity.Success);
     }
 }

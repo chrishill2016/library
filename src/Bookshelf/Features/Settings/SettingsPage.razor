@@ -36,7 +36,7 @@
         @foreach (var theme in ThemeRegistry.All)
         {
             var selected = theme.Key == Themes.Current.Key;
-            <button type="button" class="theme-option @(selected ? "selected" : null)" aria-pressed="@selected"
+            <button type="button" class="theme-option @(selected ? "selected" : null)" aria-pressed="@(selected ? "true" : "false")"
                     @onclick="() => Themes.SetThemeAsync(theme.Key)">
                 <span class="theme-swatches">
                     @foreach (var colour in theme.Swatches)

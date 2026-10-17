@@ -1,7 +1,8 @@
 rules_version = '2';
 
 // Bookshelf security rules.
-// Data: libraries/{libraryId} with members, and libraries/{libraryId}/books/{bookId}.
+// Data: libraries/{libraryId} with members, libraries/{libraryId}/books/{bookId},
+// and libraries/{libraryId}/readings/{bookId}_{uid} (each person's rating, review and read dates).
 // Deploy: paste into Firebase console → Firestore → Rules, or `firebase deploy --only firestore:rules`.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -85,6 +86,29 @@ service cloud.firestore {
           && request.resource.data.title is string && request.resource.data.title.size() <= 500
           && request.resource.data.syncedAt == request.time;
 
+        allow delete: if false;
+      }
+
+      // Everyone in the library can see everyone's readings; each person writes only their own,
+      // because the document id must end with their uid.
+      match /readings/{readingId} {
+        function validReading(data) {
+          return data.keys().hasOnly(['id', 'bookId', 'uid', 'readerName', 'rating', 'review', 'status', 'reads', 'queueOrder', 'lastModified', 'syncedAt'])
+            && data.id == readingId
+            && data.uid == request.auth.uid
+            && data.bookId is string
+            && readingId == data.bookId + '_' + request.auth.uid
+            && data.readerName is string && data.readerName.size() <= 200
+            && (data.get('rating', null) == null || (data.rating is int && data.rating >= 1 && data.rating <= 5))
+            && (data.get('review', null) == null || (data.review is string && data.review.size() <= 10000))
+            && (data.get('status', null) == null || data.status in ['want', 'reading', 'read'])
+            && (data.get('queueOrder', null) == null || data.queueOrder is number)
+            && data.reads is list && data.reads.size() <= 100
+            && data.syncedAt == request.time;
+        }
+
+        allow read: if isMemberOf(libraryId);
+        allow create, update: if isMemberOf(libraryId) && validReading(request.resource.data);
         allow delete: if false;
       }
     }

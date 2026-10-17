@@ -1,6 +1,6 @@
 // Minimal IndexedDB wrapper used by IndexedDbLocalStore.
 const DB_NAME = 'bookshelf';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise;
 
@@ -14,6 +14,8 @@ export function open() {
             if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
             // v2: cover photos (JPEG blobs) and their upload/delete state; see photos.js.
             if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos', { keyPath: 'id' });
+            // v3: each person's rating, review and read dates per book.
+            if (!db.objectStoreNames.contains('readings')) db.createObjectStore('readings', { keyPath: 'id' });
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);

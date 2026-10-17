@@ -14,9 +14,22 @@
         {
             <MudText Typo="Typo.caption" Class="lookup-flag" data-testid="lookup-notfound">Not found online · tap to add details</MudText>
         }
-        else if (Book.PublishedYear is { } year)
+        else if (Mine is { Rating: not null } or { Status: not null } || Book.PublishedYear is not null)
         {
-            <MudText Typo="Typo.caption" Class="text-secondary">@year</MudText>
+            <div class="book-row-meta">
+                @if (Mine?.Rating is { } rating)
+                {
+                    <StarRating Value="rating" ReadOnly="true" Size="Size.Small" TestId="row-rating" />
+                }
+                @if (Mine?.Status is { } status)
+                {
+                    <span class="status-badge status-@status" data-testid="row-status">@ReadingStatus.Label(status)</span>
+                }
+                @if (Book.PublishedYear is { } year)
+                {
+                    <MudText Typo="Typo.caption" Class="text-secondary">@year</MudText>
+                }
+            </div>
         }
     </div>
     <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="book-row-chevron" />
@@ -24,4 +37,7 @@
 
 @code {
     [Parameter, EditorRequired] public Book Book { get; set; } = default!;
+
+    /// <summary>The signed-in person's reading of this book, if any.</summary>
+    [Parameter] public Reading? Mine { get; set; }
 }

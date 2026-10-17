@@ -37,7 +37,7 @@ public class FirestoreRemoteStoreTests
 
         Assert.Equal([null], _client.ChangeQueries);
         Assert.Equal(["a", "b"], result.Books.Select(b => b.Id));
-        Assert.Equal("7000000", result.Cursor);
+        Assert.Equal("7000000;", result.Cursor);
     }
 
     [Fact]
@@ -45,9 +45,10 @@ public class FirestoreRemoteStoreTests
     {
         _session.SetLibrary("lib1");
 
-        await _sut.GetChangesAsync("7000000");
+        await _sut.GetChangesAsync("7000000;9000000");
 
         Assert.Equal([7_000_000 - FirestoreRemoteStore.OverlapMillis], _client.ChangeQueries);
+        Assert.Equal([9_000_000 - FirestoreRemoteStore.OverlapMillis], _client.ReadingChangeQueries);
     }
 
     [Fact]
@@ -57,9 +58,9 @@ public class FirestoreRemoteStoreTests
         // Only an older doc inside the overlap window comes back.
         _client.Books["lib1"] = [new(TestBooks.Make("a"), 6_950_000)];
 
-        var result = await _sut.GetChangesAsync("7000000");
+        var result = await _sut.GetChangesAsync("7000000;");
 
-        Assert.Equal("7000000", result.Cursor);
+        Assert.Equal("7000000;", result.Cursor);
     }
 
     [Fact]
@@ -68,7 +69,41 @@ public class FirestoreRemoteStoreTests
         _session.SetLibrary("lib1");
 
         Assert.Null((await _sut.GetChangesAsync(null)).Cursor);
-        Assert.Equal("123", (await _sut.GetChangesAsync("123")).Cursor);
+        Assert.Equal("123;456", (await _sut.GetChangesAsync("123;456")).Cursor);
+    }
+
+    [Fact]
+    public async Task Readings_have_their_own_cursor()
+    {
+        _session.SetLibrary("lib1");
+        _client.Books["lib1"] = [new(TestBooks.Make("a"), 5_000_000)];
+        _client.Readings["lib1"] = [new(TestReadings.Make("a", "chris", rating: 4), 8_000_000)];
+
+        var result = await _sut.GetChangesAsync(null);
+
+        Assert.Equal(["a_chris"], result.Readings.Select(r => r.Id));
+        Assert.Equal("5000000;8000000", result.Cursor);
+    }
+
+    [Fact]
+    public async Task Cursor_from_before_readings_pulls_all_readings()
+    {
+        _session.SetLibrary("lib1");
+
+        await _sut.GetChangesAsync("7000000");
+
+        Assert.Equal([7_000_000 - FirestoreRemoteStore.OverlapMillis], _client.ChangeQueries);
+        Assert.Equal([null], _client.ReadingChangeQueries);
+    }
+
+    [Fact]
+    public async Task Push_writes_readings_to_current_library()
+    {
+        _session.SetLibrary("lib1");
+
+        await _sut.PutReadingsAsync([TestReadings.Make("a", "chris")]);
+
+        Assert.Single(_client.Readings["lib1"]);
     }
 
     [Fact]

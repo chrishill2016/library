@@ -25,6 +25,9 @@ public enum ScanStatus
     /// <summary>Already on the shelf; skipped unless another copy is added.</summary>
     Duplicate,
 
+    /// <summary>Was on the wishlist; now it's been got, it moved onto the shelf.</summary>
+    MovedFromWishlist,
+
     Skipped,
     Undone,
 }
@@ -64,7 +67,10 @@ public sealed class ScanService(BookService books, IBookLookup lookup, IConnecti
         var isbn13 = Isbn.ToIsbn13(code)!;
         if (await books.FindByIsbnAsync(isbn13) is { } existing)
         {
-            return new ScanItem(Guid.NewGuid(), isbn13, ScanStatus.Duplicate, Book: existing);
+            // Scanning a wishlist book means it's in hand now.
+            return existing.OnWishlist
+                ? new ScanItem(Guid.NewGuid(), isbn13, ScanStatus.MovedFromWishlist, Book: await books.MoveToShelfAsync(existing.Id))
+                : new ScanItem(Guid.NewGuid(), isbn13, ScanStatus.Duplicate, Book: existing);
         }
 
         var result = connectivity.IsOnline

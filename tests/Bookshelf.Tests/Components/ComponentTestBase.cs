@@ -3,6 +3,7 @@ using Bookshelf.Features.Books;
 using Bookshelf.Features.Library;
 using Bookshelf.Features.Lookup;
 using Bookshelf.Features.Photos;
+using Bookshelf.Features.ReadingLog;
 using Bookshelf.Features.Scan;
 using Bookshelf.Services.Browser;
 using Bookshelf.Services.Firebase;
@@ -50,6 +51,14 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<IBarcodeScanner>(Scanner);
         Services.AddSingleton<IPhotoStore>(Photos);
         Services.AddSingleton<PhotoService>();
+        Services.AddSingleton(sp => new ReadingService(Store, sp.GetRequiredService<ISyncService>(), sp.GetRequiredService<AuthService>(), Time));
+    }
+
+    /// <summary>Signs in as this user (as if restored on startup), for pages that need someone signed in.</summary>
+    protected async Task SignInAsync(string uid = "chris", string name = "Chris")
+    {
+        Firebase.RestoredUser = new AppUser(uid, $"{uid}@example.com", name, null);
+        await Services.GetRequiredService<AuthService>().InitializeAsync();
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

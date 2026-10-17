@@ -6,7 +6,7 @@ using Bookshelf.Services.Storage;
 namespace Bookshelf.Services.Sync;
 
 /// <summary>
-/// Pulls remote changes (last-write-wins on <see cref="Book.LastModified"/>),
+/// Pulls remote changes to books and readings (last-write-wins on <c>LastModified</c>),
 /// then pushes whatever is left in the local outbox.
 /// </summary>
 public sealed class SyncService(
@@ -142,6 +142,17 @@ public sealed class SyncService(
             }
         }
 
+        foreach (var incoming in changes.Readings)
+        {
+            var local = await store.GetReadingAsync(incoming.Id);
+            if (local is null || incoming.LastModified > local.LastModified)
+            {
+                await store.PutReadingAsync(incoming);
+                await store.RemoveFromOutboxAsync(OutboxEntry.ForReading(incoming.Id, default).Id);
+                applied++;
+            }
+        }
+
         if (changes.Cursor is not null)
         {
             await store.SetSettingAsync(PullCursorKey, changes.Cursor);
@@ -172,6 +183,20 @@ public sealed class SyncService(
             await remote.PutBooksAsync(books, cancellationToken);
         }
 
+        var readings = new List<Reading>();
+        foreach (var entry in outbox.Where(e => e.EntityType == OutboxEntry.ReadingType))
+        {
+            if (await store.GetReadingAsync(entry.EntityId) is { } reading)
+            {
+                readings.Add(reading);
+            }
+        }
+
+        if (readings.Count > 0)
+        {
+            await remote.PutReadingsAsync(readings, cancellationToken);
+        }
+
         // Only clear entries that were not re-queued by an edit made while pushing.
         var current = (await store.GetOutboxAsync()).ToDictionary(e => e.Id);
         foreach (var entry in outbox)
@@ -182,7 +207,7 @@ public sealed class SyncService(
             }
         }
 
-        return books.Count;
+        return books.Count + readings.Count;
     }
 
     private async void OnConnectivityChanged(bool isOnline)

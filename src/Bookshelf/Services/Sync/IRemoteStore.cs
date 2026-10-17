@@ -12,17 +12,20 @@ public interface IRemoteStore
     event Action? ConfigurationChanged;
 
     /// <summary>
-    /// Books changed since <paramref name="cursor"/> (everything when null), including deletions.
+    /// Books and readings changed since <paramref name="cursor"/> (everything when null), including deletions.
     /// The cursor is opaque so the remote can use its own server-side clock.
     /// </summary>
     Task<RemoteChangeSet> GetChangesAsync(string? cursor, CancellationToken cancellationToken = default);
 
     Task PutBooksAsync(IReadOnlyList<Book> books, CancellationToken cancellationToken = default);
+
+    Task PutReadingsAsync(IReadOnlyList<Reading> readings, CancellationToken cancellationToken = default);
 }
 
 /// <param name="Books">Changed books.</param>
+/// <param name="Readings">Changed readings (anyone's).</param>
 /// <param name="Cursor">Pass back on the next pull; null keeps the previous cursor.</param>
-public sealed record RemoteChangeSet(IReadOnlyList<Book> Books, string? Cursor);
+public sealed record RemoteChangeSet(IReadOnlyList<Book> Books, IReadOnlyList<Reading> Readings, string? Cursor);
 
 /// <summary>
 /// Placeholder used until Firebase is wired up. Changes stay queued
@@ -42,5 +45,8 @@ public sealed class NotConfiguredRemoteStore : IRemoteStore
         throw new InvalidOperationException("No remote database is configured.");
 
     public Task PutBooksAsync(IReadOnlyList<Book> books, CancellationToken cancellationToken = default) =>
+        throw new InvalidOperationException("No remote database is configured.");
+
+    public Task PutReadingsAsync(IReadOnlyList<Reading> readings, CancellationToken cancellationToken = default) =>
         throw new InvalidOperationException("No remote database is configured.");
 }

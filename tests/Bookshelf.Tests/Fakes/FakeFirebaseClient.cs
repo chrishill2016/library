@@ -10,7 +10,9 @@ public sealed class FakeFirebaseClient : IFirebaseClient
 
     public Dictionary<string, LibraryInfo> Libraries { get; } = [];
     public Dictionary<string, List<RemoteBook>> Books { get; } = [];
+    public Dictionary<string, List<RemoteReading>> Readings { get; } = [];
     public List<long?> ChangeQueries { get; } = [];
+    public List<long?> ReadingChangeQueries { get; } = [];
 
     /// <summary>The account the next sign-in "chooses".</summary>
     public AppUser? NextSignIn { get; set; }
@@ -115,6 +117,25 @@ public sealed class FakeFirebaseClient : IFirebaseClient
         {
             list.RemoveAll(b => b.Book.Id == book.Id);
             list.Add(new RemoteBook(book, Clock += 1000));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<RemoteReading>> GetReadingChangesAsync(string libraryId, long? sinceMillis)
+    {
+        ReadingChangeQueries.Add(sinceMillis);
+        var readings = Readings.GetValueOrDefault(libraryId) ?? [];
+        return Task.FromResult<IReadOnlyList<RemoteReading>>([.. readings.Where(r => sinceMillis is null || r.SyncedAt > sinceMillis).OrderBy(r => r.SyncedAt)]);
+    }
+
+    public Task PutReadingsAsync(string libraryId, IReadOnlyList<Reading> readings)
+    {
+        var list = Readings.TryGetValue(libraryId, out var existing) ? existing : Readings[libraryId] = [];
+        foreach (var reading in readings)
+        {
+            list.RemoveAll(r => r.Reading.Id == reading.Id);
+            list.Add(new RemoteReading(reading, Clock += 1000));
         }
 
         return Task.CompletedTask;

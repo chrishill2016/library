@@ -273,4 +273,52 @@ public class SyncServiceTests
 
         Assert.True(condition(), "Condition was not met in time.");
     }
+
+    [Fact]
+    public async Task Pushes_queued_readings()
+    {
+        var reading = TestReadings.Make("b1", "chris", rating: 4);
+        await _store.PutReadingAsync(reading, OutboxEntry.ForReading(reading.Id, reading.LastModified));
+        var sut = CreateSut();
+
+        var result = await sut.SyncNowAsync();
+
+        Assert.Equal(1, result.Pushed);
+        Assert.Equal(4, _remote.Readings["b1_chris"].Rating);
+        Assert.Empty(_store.Outbox);
+    }
+
+    [Fact]
+    public async Task Pulls_readings_and_newer_remote_reading_wins()
+    {
+        var local = TestReadings.Make("b1", "chris", rating: 2, minutes: 5);
+        await _store.PutReadingAsync(local, OutboxEntry.ForReading(local.Id, local.LastModified));
+        _remote.Seed(TestReadings.Make("b1", "chris", rating: 5, minutes: 10));
+        _remote.Seed(TestReadings.Make("b1", "wife", rating: 3));
+        var sut = CreateSut();
+        var applied = 0;
+        sut.RemoteChangesApplied += () => applied++;
+
+        var result = await sut.SyncNowAsync();
+
+        Assert.Equal(2, result.Pulled);
+        Assert.Equal(5, _store.Readings["b1_chris"].Rating);
+        Assert.Equal(3, _store.Readings["b1_wife"].Rating);
+        Assert.Empty(_store.Outbox);
+        Assert.Equal(1, applied);
+    }
+
+    [Fact]
+    public async Task Older_remote_reading_does_not_overwrite_local_edit()
+    {
+        var local = TestReadings.Make("b1", "chris", rating: 2, minutes: 10);
+        await _store.PutReadingAsync(local, OutboxEntry.ForReading(local.Id, local.LastModified));
+        _remote.Seed(TestReadings.Make("b1", "chris", rating: 5, minutes: 5));
+        var sut = CreateSut();
+
+        await sut.SyncNowAsync();
+
+        Assert.Equal(2, _store.Readings["b1_chris"].Rating);
+        Assert.Equal(2, _remote.Readings["b1_chris"].Rating);
+    }
 }

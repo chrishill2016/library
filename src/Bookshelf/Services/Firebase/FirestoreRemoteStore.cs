@@ -5,8 +5,9 @@ using Bookshelf.Services.Sync;
 namespace Bookshelf.Services.Firebase;
 
 /// <summary>
-/// Syncs books with <c>libraries/{id}/books</c>. The pull cursor is the newest
-/// server-side <c>syncedAt</c> seen, so device clocks never matter.
+/// Syncs books with <c>libraries/{id}/books</c> and readings with <c>libraries/{id}/readings</c>.
+/// The pull cursor is the newest server-side <c>syncedAt</c> seen in each, as "books;readings",
+/// so device clocks never matter. A cursor without ";" (from before readings) is books only.
 /// </summary>
 public sealed class FirestoreRemoteStore : IRemoteStore, IDisposable
 {
@@ -33,19 +34,52 @@ public sealed class FirestoreRemoteStore : IRemoteStore, IDisposable
     public async Task<RemoteChangeSet> GetChangesAsync(string? cursor, CancellationToken cancellationToken = default)
     {
         var libraryId = RequireLibrary();
-        long? since = long.TryParse(cursor, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
-        long? from = since is null ? null : Math.Max(0, since.Value - OverlapMillis);
+        var (booksSince, readingsSince) = ParseCursor(cursor);
 
-        var changes = await _client.GetBookChangesAsync(libraryId, from);
+        var books = await _client.GetBookChangesAsync(libraryId, From(booksSince));
+        var readings = await _client.GetReadingChangesAsync(libraryId, From(readingsSince));
 
-        var newest = changes.Count == 0 ? since : Math.Max(since ?? 0, changes.Max(c => c.SyncedAt));
+        var newestBooks = Newest(booksSince, books.Select(b => b.SyncedAt));
+        var newestReadings = Newest(readingsSince, readings.Select(r => r.SyncedAt));
         return new RemoteChangeSet(
-            [.. changes.Select(c => c.Book)],
-            newest?.ToString(CultureInfo.InvariantCulture));
+            [.. books.Select(c => c.Book)],
+            [.. readings.Select(c => c.Reading)],
+            FormatCursor(newestBooks, newestReadings));
     }
 
     public Task PutBooksAsync(IReadOnlyList<Book> books, CancellationToken cancellationToken = default) =>
         _client.PutBooksAsync(RequireLibrary(), books);
+
+    public Task PutReadingsAsync(IReadOnlyList<Reading> readings, CancellationToken cancellationToken = default) =>
+        _client.PutReadingsAsync(RequireLibrary(), readings);
+
+    internal static (long? Books, long? Readings) ParseCursor(string? cursor)
+    {
+        if (cursor is null)
+        {
+            return (null, null);
+        }
+
+        var parts = cursor.Split(';');
+        return (ParseMillis(parts[0]), parts.Length > 1 ? ParseMillis(parts[1]) : null);
+    }
+
+    internal static string? FormatCursor(long? books, long? readings) =>
+        books is null && readings is null
+            ? null
+            : $"{books?.ToString(CultureInfo.InvariantCulture)};{readings?.ToString(CultureInfo.InvariantCulture)}";
+
+    private static long? ParseMillis(string text) =>
+        long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
+
+    private static long? From(long? since) => since is null ? null : Math.Max(0, since.Value - OverlapMillis);
+
+    /// <summary>The cursor never moves backwards (only older docs inside the overlap may come back).</summary>
+    private static long? Newest(long? since, IEnumerable<long> seen)
+    {
+        var list = seen.ToList();
+        return list.Count == 0 ? since : Math.Max(since ?? 0, list.Max());
+    }
 
     private string RequireLibrary() =>
         _session.LibraryId ?? throw new InvalidOperationException("Not signed in to a library.");

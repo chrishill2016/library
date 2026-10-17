@@ -766,3 +766,251 @@ h1:focus {
     gap: 0.5rem;
     padding: 0.5rem 1rem 1rem;
 }
+
+/* Ratings and reading log */
+.star-rating {
+    display: inline-flex;
+    align-items: center;
+    color: var(--mud-palette-primary);
+    line-height: 1;
+}
+
+.star-rating .star {
+    background: none;
+    border: 0;
+    padding: 4px;
+    margin: 0;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 50%;
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.star-rating .star:focus-visible {
+    outline: 2px solid var(--mud-palette-primary);
+}
+
+.star-rating .star:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.star-rating-Small .mud-icon-root {
+    font-size: 1rem;
+}
+
+.status-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.reading-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.reading-label {
+    min-width: 6rem;
+    font-weight: 600;
+}
+
+.read-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.read-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.25rem 0.15rem 0.65rem;
+    border: 1px solid var(--mud-palette-primary);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+}
+
+.read-date-remove {
+    background: none;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 50%;
+}
+
+.add-read {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 4px;
+}
+
+.add-read-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.read-year,
+.read-day {
+    max-width: 6.5rem;
+}
+
+.read-month {
+    min-width: 9rem;
+}
+
+.review-text {
+    white-space: pre-wrap;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.4rem;
+    border: 1px solid var(--mud-palette-primary);
+    color: var(--mud-palette-primary);
+}
+
+.status-badge.status-reading {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.book-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.filter-chips {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    margin: -0.5rem 0 0.75rem;
+    scrollbar-width: none;
+}
+
+.filter-chip {
+    flex: 0 0 auto;
+    font: inherit;
+    font-size: 0.875rem;
+    padding: 0.3rem 0.85rem;
+    border-radius: 1rem;
+    border: 1px solid var(--mud-palette-primary);
+    background: transparent;
+    color: var(--mud-palette-text-primary);
+    cursor: pointer;
+}
+
+.filter-chip.selected {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.shelf-section {
+    display: block;
+    color: var(--mud-palette-primary);
+    letter-spacing: 0.15em;
+    margin: 0.25rem 0;
+}
+
+/* Reading list */
+.queue-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.queue-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-background);
+    transition: transform 0.15s;
+    position: relative;
+}
+
+.queue-row.dragging {
+    transition: none;
+    z-index: 2;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    background: var(--mud-palette-surface);
+}
+
+.drag-handle {
+    touch-action: none;
+    cursor: grab;
+    color: var(--mud-palette-primary);
+    padding: 0.5rem 0.25rem;
+    display: inline-flex;
+}
+
+.queue-row.dragging .drag-handle {
+    cursor: grabbing;
+}
+
+.queue-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    color: var(--mud-palette-primary);
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.queue-book {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.queue-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.queue-text .book-row-title,
+.queue-text .book-row-author {
+    max-width: 100%;
+}
+
+.queue-actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.wishlist-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+}

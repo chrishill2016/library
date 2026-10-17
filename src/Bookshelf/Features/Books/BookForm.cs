@@ -20,6 +20,9 @@ public sealed class BookForm
     public string? Notes { get; set; }
     public string? PhotoId { get; set; }
 
+    /// <summary>Not owned yet: kept off the shelf and put on the reading list.</summary>
+    public bool OnWishlist { get; set; }
+
     public bool IsNew => _original is null;
 
     public string Id => _original?.Id ?? _newId;
@@ -38,6 +41,7 @@ public sealed class BookForm
         CoverUrl = book.CoverUrl,
         Notes = book.Notes,
         PhotoId = book.PhotoId,
+        OnWishlist = book.OnWishlist,
     };
 
     public Book ToBook() => (_original ?? new Book { Id = _newId }) with
@@ -50,6 +54,7 @@ public sealed class BookForm
         CoverUrl = CoverUrl,
         Notes = Notes,
         PhotoId = PhotoId,
+        OnWishlist = OnWishlist,
         // Saving the form means a person has checked the details.
         LookupState = null,
     };
