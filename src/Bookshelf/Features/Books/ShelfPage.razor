@@ -1,0 +1,100 @@
+@page "/"
+@implements IDisposable
+@inject BookService Books
+
+<PageTitle>Bookshelf</PageTitle>
+
+<div class="page-heading">
+    <MudText Typo="Typo.h4" HtmlTag="h1">The Shelf</MudText>
+    @if (_all is not null)
+    {
+        <MudText Typo="Typo.body2" Class="text-secondary" data-testid="book-count">@CountLabel</MudText>
+    }
+</div>
+
+<div class="shelf-toolbar">
+    <MudTextField T="string" Value="_query" ValueChanged="OnQueryChanged" Immediate="true"
+                  Placeholder="Search title, author or ISBN" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Clearable="true" Variant="Variant.Outlined"
+                  Margin="Margin.Dense" Class="shelf-search" data-testid="search" />
+    <MudSelect T="BookSort" Value="_sort" ValueChanged="OnSortChanged" Variant="Variant.Outlined"
+               Margin="Margin.Dense" Label="Sort by" Class="shelf-sort">
+        <MudSelectItem Value="BookSort.Title">Title</MudSelectItem>
+        <MudSelectItem Value="BookSort.Author">Author</MudSelectItem>
+        <MudSelectItem Value="BookSort.RecentlyAdded">Recently added</MudSelectItem>
+    </MudSelect>
+</div>
+
+@if (_all is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_all.Count == 0)
+{
+    <div class="empty-shelf">
+        <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h6">Your shelf is empty</MudText>
+        <MudText Typo="Typo.body2">Add your first book to begin the collection.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="books/new" StartIcon="@Icons.Material.Filled.Add" Class="mt-3">Add a book</MudButton>
+    </div>
+}
+else if (_visible.Count == 0)
+{
+    <MudText Typo="Typo.body1" Class="mt-6 text-center">No books match “@_query”.</MudText>
+}
+else
+{
+    <div class="book-list" data-testid="book-list">
+        <Virtualize Items="_visible" Context="book" ItemSize="96" OverscanCount="8">
+            <BookListItem @key="book.Id" Book="book" />
+        </Virtualize>
+    </div>
+}
+
+<MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="books/new" Class="add-fab" aria-label="Add a book" />
+
+@code {
+    private IReadOnlyList<Book>? _all;
+    private List<Book> _visible = [];
+    private string _query = "";
+    private BookSort _sort = BookSort.Title;
+
+    private string CountLabel =>
+        _visible.Count == _all!.Count
+            ? $"{_all.Count} {(_all.Count == 1 ? "volume" : "volumes")}"
+            : $"{_visible.Count} of {_all.Count} volumes";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Books.Changed += OnBooksChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _all = await Books.GetAllAsync();
+        Apply();
+    }
+
+    private void Apply() => _visible = [.. BookSearch.Sort(BookSearch.Filter(_all ?? [], _query), _sort)];
+
+    private void OnQueryChanged(string? value)
+    {
+        _query = value ?? "";
+        Apply();
+    }
+
+    private void OnSortChanged(BookSort value)
+    {
+        _sort = value;
+        Apply();
+    }
+
+    private void OnBooksChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Books.Changed -= OnBooksChanged;
+}

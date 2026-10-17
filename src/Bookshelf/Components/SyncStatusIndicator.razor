@@ -1,0 +1,99 @@
+@implements IDisposable
+@inject ISyncService Sync
+@inject TimeProvider Time
+
+<MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" AriaLabel="Sync status">
+    <ActivatorContent>
+        <div class="sync-status" data-testid="sync-status" @onclick="@(e => context.ToggleAsync(e))">
+            <MudBadge Content="@State.PendingCount" Visible="@(State.PendingCount > 0)" Color="Color.Secondary" Overlap="true">
+                <MudIcon Icon="@Icon" Class="@(State.IsSyncing ? "spin" : null)" />
+            </MudBadge>
+            <span class="sync-status-label d-none d-sm-inline">@ShortLabel</span>
+        </div>
+    </ActivatorContent>
+    <ChildContent>
+        <div class="px-4 py-2 sync-details" data-testid="sync-details">
+            @foreach (var line in Details)
+            {
+                <MudText Typo="Typo.body2">@line</MudText>
+            }
+        </div>
+        @if (State.RemoteConfigured)
+        {
+            <MudMenuItem Icon="@Icons.Material.Filled.Sync" OnClick="SyncNow" Disabled="@(State.IsSyncing || !State.IsOnline)">Sync now</MudMenuItem>
+        }
+    </ChildContent>
+</MudMenu>
+
+@code {
+    private SyncState State => Sync.State;
+
+    private string Icon => State switch
+    {
+        { IsOnline: false } => Icons.Material.Filled.CloudOff,
+        { IsSyncing: true } => Icons.Material.Filled.Sync,
+        { RemoteConfigured: false } => Icons.Material.Filled.PhoneAndroid,
+        { LastError: not null } => Icons.Material.Filled.SyncProblem,
+        { PendingCount: > 0 } => Icons.Material.Filled.CloudUpload,
+        _ => Icons.Material.Filled.CloudDone,
+    };
+
+    internal string ShortLabel => State switch
+    {
+        { IsOnline: false } => "Offline",
+        { IsSyncing: true } => "Syncing…",
+        { RemoteConfigured: false } => "On device",
+        { LastError: not null } => "Sync failed",
+        { PendingCount: > 0 } => $"{State.PendingCount} waiting",
+        _ => "Synced",
+    };
+
+    internal IEnumerable<string> Details
+    {
+        get
+        {
+            yield return State.IsOnline ? "Online" : "Offline";
+
+            if (!State.RemoteConfigured)
+            {
+                yield return "Saved on this device. Cloud sync is not set up yet.";
+            }
+            else if (State.LastError is not null)
+            {
+                yield return $"Last sync failed: {State.LastError}";
+            }
+
+            yield return State.PendingCount switch
+            {
+                0 => "No changes waiting to sync",
+                1 => "1 change waiting to sync",
+                var n => $"{n} changes waiting to sync",
+            };
+
+            if (State.LastSyncUtc is { } last)
+            {
+                yield return $"Last synced {Humanize(Time.GetUtcNow() - last)}";
+            }
+            else if (State.RemoteConfigured)
+            {
+                yield return "Not synced yet";
+            }
+        }
+    }
+
+    private static string Humanize(TimeSpan ago) => ago switch
+    {
+        { TotalMinutes: < 1 } => "just now",
+        { TotalHours: < 1 } => $"{(int)ago.TotalMinutes} min ago",
+        { TotalDays: < 1 } => $"{(int)ago.TotalHours} h ago",
+        _ => $"{(int)ago.TotalDays} d ago",
+    };
+
+    private async Task SyncNow() => await Sync.SyncNowAsync();
+
+    protected override void OnInitialized() => Sync.StateChanged += OnStateChanged;
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Sync.StateChanged -= OnStateChanged;
+}

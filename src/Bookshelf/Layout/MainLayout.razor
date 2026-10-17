@@ -1,0 +1,69 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeService Themes
+@inject ISyncService Sync
+@inject AppUpdateService Updates
+@inject ISnackbar Snackbar
+
+<MudThemeProvider Theme="@Themes.Current.Theme" IsDarkMode="@Themes.Current.IsDark" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="bookshelf-root theme-@Themes.Current.Key">
+    <MudLayout>
+        <MudAppBar Elevation="2" Class="gilt-appbar">
+            <MudLink Href="" Underline="Underline.None" Class="app-title">
+                <MudIcon Icon="@Icons.Material.Filled.AutoStories" Class="mr-2" />
+                <span>Bookshelf</span>
+            </MudLink>
+            <MudSpacer />
+            <SyncStatusIndicator />
+            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Href="settings" aria-label="Settings" />
+        </MudAppBar>
+
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.Medium" Class="py-4 page-container">
+                <UpdateBanner />
+                @Body
+            </MudContainer>
+            <footer class="app-footer">
+                <span class="fleuron">❦</span>
+                <MudText Typo="Typo.caption">Bookshelf v@(AppInfo.Version)</MudText>
+            </footer>
+        </MudMainContent>
+    </MudLayout>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Themes.Changed += OnThemeChanged;
+        Sync.SyncCompleted += OnSyncCompleted;
+
+        await Themes.InitializeAsync();
+        await Updates.InitializeAsync();
+        await Sync.InitializeAsync();
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnSyncCompleted(SyncResult result) => InvokeAsync(() =>
+    {
+        switch (result.Outcome)
+        {
+            case SyncOutcome.Failed:
+                Snackbar.Add($"Sync failed: {result.Error}", Severity.Error);
+                break;
+            case SyncOutcome.Succeeded when result.AfterReconnect:
+                Snackbar.Add("Back online — everything is synced.", Severity.Success);
+                break;
+        }
+    });
+
+    public void Dispose()
+    {
+        Themes.Changed -= OnThemeChanged;
+        Sync.SyncCompleted -= OnSyncCompleted;
+    }
+}

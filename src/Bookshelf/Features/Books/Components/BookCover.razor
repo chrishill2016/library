@@ -1,0 +1,36 @@
+@if (!string.IsNullOrEmpty(Book.CoverUrl) && !_failed)
+{
+    <img class="book-cover book-cover-@Size" src="@Book.CoverUrl" alt="Cover of @Book.Title" loading="lazy" @onerror="() => _failed = true" />
+}
+else
+{
+    <div class="book-cover book-cover-@Size book-cover-placeholder" role="img" aria-label="No cover for @Book.Title">
+        <span class="placeholder-rule"></span>
+        <span class="placeholder-title">@Book.Title</span>
+        @if (Size == CoverSize.Large && !string.IsNullOrEmpty(Book.Author))
+        {
+            <span class="placeholder-author">@Book.Author</span>
+        }
+        <span class="placeholder-rule"></span>
+    </div>
+}
+
+@code {
+    public enum CoverSize { Small, Large }
+
+    private bool _failed;
+    private string? _lastUrl;
+
+    [Parameter, EditorRequired] public Book Book { get; set; } = default!;
+
+    [Parameter] public CoverSize Size { get; set; } = CoverSize.Small;
+
+    protected override void OnParametersSet()
+    {
+        if (_lastUrl != Book.CoverUrl)
+        {
+            _lastUrl = Book.CoverUrl;
+            _failed = false;
+        }
+    }
+}

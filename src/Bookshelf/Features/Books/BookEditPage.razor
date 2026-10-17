@@ -1,0 +1,87 @@
+@page "/books/new"
+@page "/books/{Id}/edit"
+@inject BookService Books
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(IsNew ? "Add a book" : "Edit book") · Bookshelf</PageTitle>
+
+<MudButton Href="@(IsNew ? "" : $"books/{Id}")" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">Back</MudButton>
+
+@if (_form is null)
+{
+    @if (_notFound)
+    {
+        <MudText Typo="Typo.h6">This book isn't on the shelf.</MudText>
+    }
+    else
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+}
+else
+{
+    <MudPaper Class="pa-4 tooled-panel" Elevation="3">
+        <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-2">@(IsNew ? "Add a book" : "Edit book")</MudText>
+        <MudForm @ref="_mudForm" @bind-IsValid="_isValid">
+            <MudTextField @bind-Value="_form.Title" Label="Title" Required="true" RequiredError="Every book needs a title."
+                          Variant="Variant.Outlined" Class="mb-3" AutoFocus="@IsNew" data-testid="title" />
+            <MudTextField @bind-Value="_form.Author" Label="Author" Variant="Variant.Outlined" Class="mb-3"
+                          HelperText="Separate several authors with “&”." data-testid="author" />
+            <div class="form-row">
+                <MudTextField @bind-Value="_form.Isbn" Label="ISBN" Variant="Variant.Outlined" Immediate="true"
+                              InputMode="InputMode.numeric" HelperText="@_form.IsbnWarning" data-testid="isbn" />
+                <MudNumericField @bind-Value="_form.PublishedYear" Label="Year" Variant="Variant.Outlined"
+                                 Min="1000" Max="2100" HideSpinButtons="true" data-testid="year" />
+            </div>
+            <MudTextField @bind-Value="_form.Publisher" Label="Publisher" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_form.CoverUrl" Label="Cover image link (optional)" Variant="Variant.Outlined" Class="mb-3"
+                          HelperText="Scanning and photos will fill this in later." InputType="InputType.Url" />
+            <MudTextField @bind-Value="_form.Notes" Label="Notes" Variant="Variant.Outlined" Lines="3" Sizing="InputSizing.Auto" Class="mb-3" />
+        </MudForm>
+        <div class="d-flex gap-2 justify-end">
+            <MudButton Variant="Variant.Text" Href="@(IsNew ? "" : $"books/{Id}")">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                       StartIcon="@Icons.Material.Filled.Save" data-testid="save">Save</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private BookForm? _form;
+    private MudForm? _mudForm;
+    private bool _isValid;
+    private bool _saving;
+    private bool _notFound;
+
+    [Parameter] public string? Id { get; set; }
+
+    private bool IsNew => string.IsNullOrEmpty(Id);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsNew)
+        {
+            _form = new BookForm();
+            return;
+        }
+
+        var book = await Books.GetAsync(Id!);
+        _notFound = book is null;
+        _form = book is null ? null : BookForm.From(book);
+    }
+
+    private async Task SaveAsync()
+    {
+        await _mudForm!.ValidateAsync();
+        if (!_isValid)
+        {
+            return;
+        }
+
+        _saving = true;
+        var saved = await Books.SaveAsync(_form!.ToBook());
+        Snackbar.Add(IsNew ? $"Added “{saved.Title}” to the shelf." : "Saved.", Severity.Success);
+        Nav.NavigateTo($"books/{saved.Id}", replace: true);
+    }
+}

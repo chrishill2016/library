@@ -1,0 +1,20 @@
+@implements IDisposable
+@inject AppUpdateService Updates
+
+@if (Updates.UpdateAvailable)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4" Icon="@Icons.Material.Filled.NewReleases">
+        <div class="d-flex align-center flex-wrap gap-2">
+            <span>New version available.</span>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="Updates.ApplyUpdateAsync">Refresh</MudButton>
+        </div>
+    </MudAlert>
+}
+
+@code {
+    protected override void OnInitialized() => Updates.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Updates.Changed -= OnChanged;
+}

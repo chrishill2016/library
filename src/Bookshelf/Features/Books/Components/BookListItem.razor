@@ -1,0 +1,19 @@
+<a class="book-row" href="books/@Book.Id">
+    <BookCover Book="Book" />
+    <div class="book-row-text">
+        <MudText Typo="Typo.subtitle1" Class="book-row-title">@Book.Title</MudText>
+        @if (!string.IsNullOrEmpty(Book.Author))
+        {
+            <MudText Typo="Typo.body2" Class="book-row-author">@Book.Author</MudText>
+        }
+        @if (Book.PublishedYear is { } year)
+        {
+            <MudText Typo="Typo.caption" Class="text-secondary">@year</MudText>
+        }
+    </div>
+    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="book-row-chevron" />
+</a>
+
+@code {
+    [Parameter, EditorRequired] public Book Book { get; set; } = default!;
+}

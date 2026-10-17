@@ -1,0 +1,480 @@
+/* ---------- Fonts (self-hosted so they work offline) ---------- */
+@font-face {
+    font-family: 'EB Garamond';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/eb-garamond-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'EB Garamond';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/eb-garamond-latin-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'EB Garamond';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/eb-garamond-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/cormorant-garamond-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/cormorant-garamond-latin-700-normal.woff2') format('woff2');
+}
+
+/* ---------- Shared, theme-aware styling (uses MudBlazor palette variables) ---------- */
+html, body {
+    margin: 0;
+    background: #2b1310;
+}
+
+.bookshelf-root {
+    min-height: 100vh;
+    background-color: var(--mud-palette-background);
+}
+
+.page-container {
+    padding-bottom: 6rem !important;
+}
+
+/* FocusOnNavigate moves focus to the page heading for screen readers; no visible ring needed. */
+h1:focus {
+    outline: none;
+}
+
+.text-secondary {
+    color: var(--mud-palette-text-secondary);
+}
+
+.app-title {
+    display: inline-flex;
+    align-items: center;
+    color: var(--mud-palette-appbar-text) !important;
+    font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: 0.06em;
+}
+
+.sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    color: var(--mud-palette-appbar-text);
+}
+
+.sync-status-label {
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.sync-details {
+    max-width: 18rem;
+}
+
+.spin {
+    animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(-360deg); }
+}
+
+.page-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    padding-bottom: 0.5rem;
+}
+
+.shelf-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+}
+
+.shelf-search {
+    flex: 1 1 auto;
+}
+
+.shelf-sort {
+    flex: 0 0 11rem;
+}
+
+@media (max-width: 599px) {
+    .shelf-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .shelf-sort {
+        flex-basis: auto;
+    }
+}
+
+.book-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.book-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 96px;
+    box-sizing: border-box;
+    padding: 0.5rem 0.25rem;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.book-row:hover {
+    background: var(--mud-palette-action-default-hover);
+}
+
+.book-row-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.book-row-title,
+.book-row-author {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.book-row-title {
+    font-weight: 600 !important;
+}
+
+.book-row-author {
+    font-style: italic;
+    color: var(--mud-palette-text-secondary);
+}
+
+.book-row-chevron {
+    color: var(--mud-palette-primary);
+    opacity: 0.6;
+}
+
+/* Covers */
+.book-cover {
+    display: block;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border-radius: 2px 4px 4px 2px;
+    box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+.book-cover-Small {
+    width: 52px;
+    height: 78px;
+}
+
+.book-cover-Large {
+    width: 160px;
+    height: 240px;
+}
+
+.book-cover-placeholder {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.4rem;
+    text-align: center;
+    overflow: hidden;
+    color: var(--mud-palette-primary);
+    background: var(--mud-palette-appbar-background);
+    border-left: 4px solid rgba(0, 0, 0, 0.35);
+    outline: 1px solid var(--mud-palette-primary);
+    outline-offset: -5px;
+}
+
+.placeholder-title {
+    font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    font-weight: 700;
+    line-height: 1.1;
+    font-size: 0.6rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.book-cover-Large .placeholder-title {
+    font-size: 1.3rem;
+    -webkit-line-clamp: 5;
+}
+
+.placeholder-author {
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.placeholder-rule {
+    width: 60%;
+    border-top: 1px solid currentColor;
+    opacity: 0.7;
+}
+
+.book-cover-Small .placeholder-rule {
+    display: none;
+}
+
+/* Details */
+.book-details {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.book-details-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (max-width: 599px) {
+    .book-details {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+}
+
+.book-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 1rem;
+    margin: 0.75rem 0;
+    text-align: left;
+}
+
+.book-facts dt {
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: var(--mud-palette-text-secondary);
+}
+
+.book-facts dd {
+    margin: 0;
+}
+
+.book-notes {
+    white-space: pre-line;
+    text-align: left;
+}
+
+.ornament-rule {
+    height: 1px;
+    margin: 0.75rem 0;
+    background: linear-gradient(90deg, transparent, var(--mud-palette-primary), transparent);
+    position: relative;
+}
+
+.ornament-rule::after {
+    content: '❧';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -55%);
+    padding: 0 0.5rem;
+    color: var(--mud-palette-primary);
+    background: var(--mud-palette-surface);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.empty-shelf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.add-fab {
+    position: fixed !important;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 10;
+}
+
+.app-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0 2rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.fleuron {
+    color: var(--mud-palette-primary);
+    font-size: 1.2rem;
+}
+
+/* Theme picker */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.75rem;
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    text-align: left;
+    font: inherit;
+    color: var(--mud-palette-text-primary);
+    background: transparent;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.theme-option.selected {
+    border: 2px solid var(--mud-palette-primary);
+}
+
+.theme-swatches {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.theme-swatches span {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-name {
+    font-weight: 600;
+}
+
+.theme-description {
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* ---------- Leather & Gilt textures ---------- */
+.theme-leather-gilt.bookshelf-root {
+    background-color: #2b1310;
+    background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(120, 40, 30, 0.35), transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(0, 0, 0, 0.45), transparent 60%),
+        repeating-radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px);
+    background-attachment: fixed;
+}
+
+.theme-leather-gilt .gilt-appbar {
+    background-image: linear-gradient(180deg, #5a211c, #3f1512);
+    border-bottom: 3px double #c9a44c;
+}
+
+.theme-leather-gilt .tooled-panel {
+    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.12));
+    border: 1px solid rgba(201, 164, 76, 0.45);
+    outline: 1px solid rgba(201, 164, 76, 0.2);
+    outline-offset: -6px;
+}
+
+.theme-leather-gilt .book-cover-placeholder {
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent 15%), linear-gradient(160deg, #5c221d, #3a1411);
+}
+
+/* ---------- Blazor defaults ---------- */
+#blazor-error-ui {
+    color-scheme: light only;
+    background: #f1e4c8;
+    color: #2b1310;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+.loading-progress {
+    position: absolute;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    inset: 20vh 0 auto 0;
+    margin: 0 auto 0 auto;
+}
+
+.loading-progress circle {
+    fill: none;
+    stroke: rgba(201, 164, 76, 0.2);
+    stroke-width: 0.6rem;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+}
+
+.loading-progress circle:last-child {
+    stroke: #c9a44c;
+    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+    transition: stroke-dasharray 0.05s ease-in-out;
+}
+
+.loading-progress-text {
+    position: absolute;
+    text-align: center;
+    font-family: 'EB Garamond', Georgia, serif;
+    color: #e8cf8a;
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+}
+
+.loading-progress-text:after {
+    content: var(--blazor-load-percentage-text, "Loading");
+}

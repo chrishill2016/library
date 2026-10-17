@@ -1,0 +1,88 @@
+@page "/books/{Id}"
+@inject BookService Books
+@inject NavigationManager Nav
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_book?.Title ?? "Book") · Bookshelf</PageTitle>
+
+<MudButton Href="" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">The Shelf</MudButton>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_book is null)
+{
+    <MudText Typo="Typo.h6">This book isn't on the shelf.</MudText>
+}
+else
+{
+    <MudPaper Class="pa-4 tooled-panel" Elevation="3">
+        <div class="book-details">
+            <BookCover Book="_book" Size="BookCover.CoverSize.Large" />
+            <div class="book-details-text">
+                <MudText Typo="Typo.h4" HtmlTag="h1">@_book.Title</MudText>
+                @if (!string.IsNullOrEmpty(_book.Author))
+                {
+                    <MudText Typo="Typo.h6" Class="text-secondary font-italic">@_book.Author</MudText>
+                }
+                <div class="ornament-rule"></div>
+                <dl class="book-facts">
+                    @if (_book.PublishedYear is { } year)
+                    {
+                        <dt>Published</dt><dd>@year</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(_book.Publisher))
+                    {
+                        <dt>Publisher</dt><dd>@_book.Publisher</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(_book.Isbn))
+                    {
+                        <dt>ISBN</dt><dd>@_book.Isbn</dd>
+                    }
+                    <dt>Added</dt><dd>@_book.AddedUtc.ToLocalTime().ToString("d MMMM yyyy")</dd>
+                </dl>
+                @if (!string.IsNullOrEmpty(_book.Notes))
+                {
+                    <MudText Typo="Typo.body1" Class="book-notes">@_book.Notes</MudText>
+                }
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-4 justify-end">
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Remove</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" Href="@($"books/{_book.Id}/edit")">Edit</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private Book? _book;
+    private bool _loading = true;
+
+    [Parameter] public string Id { get; set; } = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _book = await Books.GetAsync(Id);
+        _loading = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            "Remove book",
+            $"Remove “{_book!.Title}” from the shelf?",
+            yesText: "Remove",
+            cancelText: "Keep it");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await Books.DeleteAsync(_book.Id);
+        Snackbar.Add($"Removed “{_book.Title}”.", Severity.Info);
+        Nav.NavigateTo("");
+    }
+}

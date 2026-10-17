@@ -1,0 +1,48 @@
+using Bookshelf.Models;
+
+namespace Bookshelf.Features.Books;
+
+/// <summary>Mutable form model for adding or editing a <see cref="Book"/>.</summary>
+public sealed class BookForm
+{
+    private Book? _original;
+
+    public string Title { get; set; } = "";
+    public string Author { get; set; } = "";
+    public string? Isbn { get; set; }
+    public string? Publisher { get; set; }
+    public int? PublishedYear { get; set; }
+    public string? CoverUrl { get; set; }
+    public string? Notes { get; set; }
+
+    public bool IsNew => _original is null;
+
+    public static BookForm From(Book book) => new()
+    {
+        _original = book,
+        Title = book.Title,
+        Author = book.Author,
+        Isbn = book.Isbn,
+        Publisher = book.Publisher,
+        PublishedYear = book.PublishedYear,
+        CoverUrl = book.CoverUrl,
+        Notes = book.Notes,
+    };
+
+    public Book ToBook() => (_original ?? new Book { Id = Book.NewId() }) with
+    {
+        Title = Title,
+        Author = Author,
+        Isbn = Isbn,
+        Publisher = Publisher,
+        PublishedYear = PublishedYear,
+        CoverUrl = CoverUrl,
+        Notes = Notes,
+    };
+
+    /// <summary>A gentle warning (not a blocker): old books can have odd numbers.</summary>
+    public string? IsbnWarning =>
+        string.IsNullOrWhiteSpace(Isbn) || Books.Isbn.IsValid(Isbn)
+            ? null
+            : "That doesn't look like a valid ISBN-10 or ISBN-13. You can still save it.";
+}

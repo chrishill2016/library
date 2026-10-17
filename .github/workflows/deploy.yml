@@ -1,0 +1,72 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release -p:BuildNumber=${{ github.run_number }}
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Publish
+        run: >
+          dotnet publish src/Bookshelf/Bookshelf.csproj
+          --configuration Release
+          --output publish
+          -p:BuildNumber=${{ github.run_number }}
+
+      - name: Prepare for GitHub Pages
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: |
+          cd publish/wwwroot
+          # Serve from /<repo-name>/ instead of the site root.
+          sed -i "s|<base href=\"/\" />|<base href=\"${BASE_PATH}\" />|" index.html
+          grep -q "<base href=\"${BASE_PATH}\" />" index.html
+          # Deep links: GitHub Pages serves 404.html for unknown paths.
+          cp index.html 404.html
+          # Let _framework (underscore) files through.
+          touch .nojekyll
+          # index.html changed after publish, so refresh its hash in the service worker manifest.
+          HASH="sha256-$(openssl dgst -sha256 -binary index.html | openssl base64 -A)"
+          HASH="$HASH" perl -0pi -e 's/"hash": "[^"]*"(,\s*"url": "index\.html")/"hash": "$ENV{HASH}"$1/' service-worker-assets.js
+          grep -q "${HASH}" service-worker-assets.js
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

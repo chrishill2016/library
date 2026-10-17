@@ -1,0 +1,69 @@
+@page "/settings"
+@implements IDisposable
+@inject ThemeService Themes
+@inject ISyncService Sync
+
+<PageTitle>Settings · Bookshelf</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Settings</MudText>
+
+<MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-2">Binding</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3 text-secondary">Choose how the library looks on this device.</MudText>
+    <div class="theme-grid">
+        @foreach (var theme in ThemeRegistry.All)
+        {
+            var selected = theme.Key == Themes.Current.Key;
+            <button type="button" class="theme-option @(selected ? "selected" : null)" aria-pressed="@selected"
+                    @onclick="() => Themes.SetThemeAsync(theme.Key)">
+                <span class="theme-swatches">
+                    @foreach (var colour in theme.Swatches)
+                    {
+                        <span style="background:@colour"></span>
+                    }
+                </span>
+                <span class="theme-name">@theme.Name</span>
+                <span class="theme-description">@theme.Description</span>
+            </button>
+        }
+    </div>
+    <MudText Typo="Typo.caption" Class="mt-2 d-block text-secondary">More bindings are coming.</MudText>
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-2">Sync</MudText>
+    @if (!Sync.State.RemoteConfigured)
+    {
+        <MudText Typo="Typo.body2">
+            Books are saved on this device for now. Once sign-in and cloud sync are added,
+            everything waiting here (@Sync.State.PendingCount @(Sync.State.PendingCount == 1 ? "change" : "changes")) will upload automatically.
+        </MudText>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
+                   OnClick="() => Sync.SyncNowAsync()" Disabled="@(Sync.State.IsSyncing || !Sync.State.IsOnline)">Sync now</MudButton>
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4 tooled-panel" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-2">About</MudText>
+    <MudText Typo="Typo.body2">Bookshelf v@(AppInfo.Version)</MudText>
+    <MudText Typo="Typo.caption" Class="text-secondary">Set in EB Garamond and Cormorant Garamond (SIL Open Font License).</MudText>
+</MudPaper>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Themes.Changed += OnChanged;
+        Sync.StateChanged += OnChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Themes.Changed -= OnChanged;
+        Sync.StateChanged -= OnChanged;
+    }
+}
