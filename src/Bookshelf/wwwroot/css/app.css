@@ -675,3 +675,9 @@ h1:focus {
 .loading-progress-text:after {
     content: var(--blazor-load-percentage-text, "Loading");
 }
+
+.photo-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}

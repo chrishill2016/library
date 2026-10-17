@@ -54,6 +54,19 @@ public class CoverPhotoTests : ComponentTestBase
     }
 
     [Fact]
+    public void Photo_button_opens_the_camera_and_gallery_button_picks_a_picture()
+    {
+        var cut = Render<BookEditPage>();
+
+        Assert.Equal("environment", cut.Find("input[data-testid=photo-input]").GetAttribute("capture"));
+        Assert.False(cut.Find("input[data-testid=photo-gallery-input]").HasAttribute("capture"));
+
+        cut.Find("input[data-testid=photo-gallery-input]").Change("");
+        cut.WaitForAssertion(() => Assert.Contains("Replace photo", cut.Find("[data-testid=photo-button]").TextContent));
+        Assert.Single(Photos.Local);
+    }
+
+    [Fact]
     public void Cancelling_the_picker_changes_nothing()
     {
         Photos.NextCaptureCancelled = true;

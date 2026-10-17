@@ -1,17 +1,28 @@
 @inject PhotoService Photos
 @inject ISnackbar Snackbar
 
-@* A label styled as a button opens the file picker; on phones that offers the camera or the gallery. *@
-<input type="file" accept="image/*" id="@_inputId" class="visually-hidden" @ref="_input" @onchange="OnFileChosenAsync"
-       data-testid="photo-input" />
-<MudButton HtmlTag="label" for="@_inputId" Variant="@Variant" Color="Color.Primary" Size="@Size"
-           StartIcon="@Icons.Material.Filled.PhotoCamera" Disabled="_busy" data-testid="photo-button">
-    @(_busy ? "Saving photo…" : Label)
-</MudButton>
+@* Labels styled as buttons open hidden file inputs. capture="environment" makes Android open the rear camera
+   straight away; the gallery input has no capture, so it offers existing pictures. *@
+<input type="file" accept="image/*" capture="environment" id="@_cameraId" class="visually-hidden" @ref="_camera"
+       @onchange="() => OnFileChosenAsync(_camera)" data-testid="photo-input" />
+<input type="file" accept="image/*" id="@_galleryId" class="visually-hidden" @ref="_gallery"
+       @onchange="() => OnFileChosenAsync(_gallery)" data-testid="photo-gallery-input" />
+<span class="photo-buttons">
+    <MudButton HtmlTag="label" for="@_cameraId" Variant="@Variant" Color="Color.Primary" Size="@Size"
+               StartIcon="@Icons.Material.Filled.PhotoCamera" Disabled="_busy" data-testid="photo-button">
+        @(_busy ? "Saving photo…" : Label)
+    </MudButton>
+    <MudTooltip Text="Choose from gallery">
+        <MudIconButton HtmlTag="label" for="@_galleryId" Icon="@Icons.Material.Filled.PhotoLibrary" Color="Color.Primary"
+                       Size="@Size" Disabled="_busy" aria-label="Choose from gallery" data-testid="gallery-button" />
+    </MudTooltip>
+</span>
 
 @code {
-    private readonly string _inputId = $"photo-{Guid.NewGuid():N}";
-    private ElementReference _input;
+    private readonly string _cameraId = $"photo-{Guid.NewGuid():N}";
+    private readonly string _galleryId = $"gallery-{Guid.NewGuid():N}";
+    private ElementReference _camera;
+    private ElementReference _gallery;
     private bool _busy;
 
     [Parameter] public string Label { get; set; } = "Photo";
@@ -21,12 +32,12 @@
     /// <summary>Called with the resized photo, stored on this device but not yet attached to a book.</summary>
     [Parameter] public EventCallback<CapturedPhoto> OnCaptured { get; set; }
 
-    private async Task OnFileChosenAsync()
+    private async Task OnFileChosenAsync(ElementReference input)
     {
         _busy = true;
         try
         {
-            if (await Photos.CaptureAsync(_input) is { } photo)
+            if (await Photos.CaptureAsync(input) is { } photo)
             {
                 await OnCaptured.InvokeAsync(photo);
             }

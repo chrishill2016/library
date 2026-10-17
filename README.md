@@ -74,7 +74,7 @@ The remote is Firestore (`FirestoreRemoteStore`):
 
 ## Cover photos
 
-- **Taking a photo:** the Photo button (book page and edit form) opens the phone's camera or gallery.
+- **Taking a photo:** the Photo button (book page and edit form) opens the camera directly; the gallery icon next to it picks an existing picture.
 - **Processing** happens in `photos.js`:
   - EXIF rotation is applied, the photo is centre-trimmed to 2:3 and scaled to at most 800px, then saved as an 80% JPEG (typically 50–150 KB).
   - It's stored in IndexedDB (`photos` store) and shown from there.
