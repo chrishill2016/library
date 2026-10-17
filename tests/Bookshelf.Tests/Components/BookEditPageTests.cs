@@ -13,7 +13,7 @@ public class BookEditPageTests : ComponentTestBase
     {
         var cut = Render<BookEditPage>();
 
-        cut.Find("input[data-testid=title]").Change("Middlemarch");
+        cut.Find("input[data-testid=title]").Input("Middlemarch");
         cut.Find("input[data-testid=author]").Change("George Eliot");
         cut.Find("[data-testid=save]").Click();
 
@@ -33,6 +33,52 @@ public class BookEditPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() => Assert.Contains("Every book needs a title.", cut.Markup));
         Assert.Empty(Store.Books);
+    }
+
+    [Fact]
+    public void Back_and_cancel_are_real_links_to_the_shelf()
+    {
+        var cut = Render<BookEditPage>();
+
+        var links = cut.FindAll("a").Where(a => a.TextContent.Trim() is "Back" or "Cancel").ToList();
+
+        Assert.Equal(2, links.Count);
+        Assert.All(links, a => Assert.Equal("./", a.GetAttribute("href")));
+    }
+
+    [Fact]
+    public async Task Back_and_cancel_return_to_the_book_when_editing()
+    {
+        await Store.PutBookAsync(TestBooks.Make("e1", "Emma"));
+
+        var cut = Render<BookEditPage>(p => p.Add(x => x.Id, "e1"));
+
+        var links = cut.FindAll("a").Where(a => a.TextContent.Trim() is "Back" or "Cancel").ToList();
+        Assert.Equal(2, links.Count);
+        Assert.All(links, a => Assert.Equal("books/e1", a.GetAttribute("href")));
+    }
+
+    [Fact]
+    public void Leaving_the_empty_title_does_not_show_the_error()
+    {
+        var cut = Render<BookEditPage>();
+
+        // What happens when tapping Back or Cancel straight after opening the page.
+        cut.Find("input[data-testid=title]").Blur();
+
+        Assert.DoesNotContain("Every book needs a title.", cut.Markup);
+    }
+
+    [Fact]
+    public void Title_error_clears_once_a_title_is_typed()
+    {
+        var cut = Render<BookEditPage>();
+        cut.Find("[data-testid=save]").Click();
+        cut.WaitForAssertion(() => Assert.Contains("Every book needs a title.", cut.Markup));
+
+        cut.Find("input[data-testid=title]").Input("Emma");
+
+        cut.WaitForAssertion(() => Assert.DoesNotContain("Every book needs a title.", cut.Markup));
     }
 
     [Fact]
