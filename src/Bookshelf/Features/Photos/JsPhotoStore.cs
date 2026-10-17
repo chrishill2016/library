@@ -8,8 +8,20 @@ public sealed class JsPhotoStore(IJSRuntime js) : IPhotoStore, IAsyncDisposable
     private readonly Lazy<Task<IJSObjectReference>> _module =
         new(() => js.InvokeAsync<IJSObjectReference>("import", "./js/photos.js").AsTask());
 
-    public async Task<CapturedPhoto?> CaptureAsync(ElementReference fileInput) =>
-        await (await _module.Value).InvokeAsync<CapturedPhoto?>("captureFromInput", fileInput);
+    public async Task<PhotoDraft?> OpenDraftAsync(ElementReference fileInput) =>
+        await (await _module.Value).InvokeAsync<PhotoDraft?>("openDraft", fileInput);
+
+    public async Task ShowCropperAsync(ElementReference stage, string draftId) =>
+        await (await _module.Value).InvokeVoidAsync("showCropper", stage, draftId);
+
+    public async Task ResetCornersAsync(string draftId, bool wholePhoto) =>
+        await (await _module.Value).InvokeVoidAsync("resetCorners", draftId, wholePhoto);
+
+    public async Task<CapturedPhoto> SaveDraftAsync(string draftId) =>
+        await (await _module.Value).InvokeAsync<CapturedPhoto>("saveDraft", draftId);
+
+    public async Task DiscardDraftAsync(string draftId) =>
+        await (await _module.Value).InvokeVoidAsync("discardDraft", draftId);
 
     public async Task<string?> GetUrlAsync(string photoId, string? libraryId) =>
         await (await _module.Value).InvokeAsync<string?>("getUrl", photoId, libraryId);

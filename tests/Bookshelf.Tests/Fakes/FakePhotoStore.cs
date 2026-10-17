@@ -18,16 +18,54 @@ public sealed class FakePhotoStore : IPhotoStore
     /// <summary>The next photo "chosen" in the file input (null = picker cancelled).</summary>
     public bool NextCaptureCancelled { get; set; }
 
-    public Task<CapturedPhoto?> CaptureAsync(ElementReference fileInput)
+    /// <summary>Whether the next draft gets a guessed outline.</summary>
+    public bool NextDraftFound { get; set; } = true;
+
+    /// <summary>Drafts open for cropping, with the last reset applied (null = guess, true = whole photo).</summary>
+    public Dictionary<string, bool?> Drafts { get; } = [];
+
+    public List<string> CroppersShown { get; } = [];
+
+    public Task<PhotoDraft?> OpenDraftAsync(ElementReference fileInput)
     {
         if (NextCaptureCancelled)
         {
-            return Task.FromResult<CapturedPhoto?>(null);
+            return Task.FromResult<PhotoDraft?>(null);
+        }
+
+        var id = $"draft{++_next:D4}";
+        Drafts[id] = null;
+        return Task.FromResult<PhotoDraft?>(new PhotoDraft(id, NextDraftFound));
+    }
+
+    public Task ShowCropperAsync(ElementReference stage, string draftId)
+    {
+        CroppersShown.Add(draftId);
+        return Task.CompletedTask;
+    }
+
+    public Task ResetCornersAsync(string draftId, bool wholePhoto)
+    {
+        Drafts[draftId] = wholePhoto;
+        return Task.CompletedTask;
+    }
+
+    public Task<CapturedPhoto> SaveDraftAsync(string draftId)
+    {
+        if (!Drafts.Remove(draftId))
+        {
+            throw new InvalidOperationException("No such draft.");
         }
 
         var id = $"photo{++_next:D4}abcdef";
         Local[id] = new Photo(false, false, false);
-        return Task.FromResult<CapturedPhoto?>(new CapturedPhoto(id, $"blob:{id}", 120_000));
+        return Task.FromResult(new CapturedPhoto(id, $"blob:{id}", 120_000));
+    }
+
+    public Task DiscardDraftAsync(string draftId)
+    {
+        Drafts.Remove(draftId);
+        return Task.CompletedTask;
     }
 
     public Task<string?> GetUrlAsync(string photoId, string? libraryId)

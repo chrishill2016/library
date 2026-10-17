@@ -2,6 +2,7 @@ using Bookshelf.Features.Books;
 using Bookshelf.Models;
 using Bookshelf.Services.Browser;
 using Bookshelf.Services.Firebase;
+using Microsoft.AspNetCore.Components;
 
 namespace Bookshelf.Features.Photos;
 
@@ -33,8 +34,15 @@ public sealed class PhotoService : IDisposable
 
     public event Action? Changed;
 
-    public Task<CapturedPhoto?> CaptureAsync(Microsoft.AspNetCore.Components.ElementReference fileInput) =>
-        _photos.CaptureAsync(fileInput);
+    public Task<PhotoDraft?> OpenDraftAsync(ElementReference fileInput) => _photos.OpenDraftAsync(fileInput);
+
+    public Task ShowCropperAsync(ElementReference stage, string draftId) => _photos.ShowCropperAsync(stage, draftId);
+
+    public Task ResetCornersAsync(string draftId, bool wholePhoto) => _photos.ResetCornersAsync(draftId, wholePhoto);
+
+    public Task<CapturedPhoto> SaveDraftAsync(string draftId) => _photos.SaveDraftAsync(draftId);
+
+    public Task DiscardDraftAsync(string draftId) => _photos.DiscardDraftAsync(draftId);
 
     /// <summary>URL to show for a book's photo, or null (fall back to the online cover).</summary>
     public Task<string?> GetUrlAsync(string photoId) => _photos.GetUrlAsync(photoId, _session.LibraryId);

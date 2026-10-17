@@ -29,7 +29,7 @@ public class PhotoServiceTests
 
     private async Task<Book> BookAsync() => await _books.SaveAsync(TestBooks.Make("b1", "Emma"));
 
-    private async Task<string> CaptureAsync() => (await _sut.CaptureAsync(default))!.Id;
+    private async Task<string> CaptureAsync() => (await _sut.SaveDraftAsync((await _sut.OpenDraftAsync(default))!.Id)).Id;
 
     [Fact]
     public async Task Setting_a_photo_saves_the_book_and_uploads()

@@ -1,0 +1,91 @@
+@implements IAsyncDisposable
+@inject PhotoService Photos
+@inject ISnackbar Snackbar
+
+@* Full-screen crop view. The photo and corner handles are drawn by photos.js inside the stage. *@
+<div class="cover-cropper" role="dialog" aria-modal="true" aria-label="Crop cover photo" data-testid="cropper">
+    <MudText Typo="Typo.body1" Class="cropper-hint">
+        @(Draft.Found
+            ? "Drag the corners onto the corners of the book."
+            : "Couldn't spot the book's edges. Drag the corners onto the corners of the book.")
+    </MudText>
+    <div class="cropper-stage" @ref="_stage"></div>
+    <div class="cropper-actions">
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="CancelAsync" Disabled="_saving"
+                   data-testid="crop-cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="ToggleWholeAsync" Disabled="_saving"
+                   data-testid="crop-whole">@(_whole ? "Guess again" : "Whole photo")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UseAsync" Disabled="_saving"
+                   StartIcon="@Icons.Material.Filled.Check" data-testid="crop-use">@(_saving ? "Saving…" : "Use photo")</MudButton>
+    </div>
+</div>
+
+@code {
+    private ElementReference _stage;
+    private bool _saving;
+    private bool _whole;
+    private bool _finished;
+
+    [Parameter, EditorRequired] public PhotoDraft Draft { get; set; } = default!;
+
+    /// <summary>The cropped photo, or null when cancelled.</summary>
+    [Parameter] public EventCallback<CapturedPhoto?> OnDone { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Photos.ShowCropperAsync(_stage, Draft.Id);
+        }
+    }
+
+    private async Task ToggleWholeAsync()
+    {
+        _whole = !_whole;
+        await Photos.ResetCornersAsync(Draft.Id, _whole);
+    }
+
+    private async Task UseAsync()
+    {
+        _saving = true;
+        try
+        {
+            var photo = await Photos.SaveDraftAsync(Draft.Id);
+            _finished = true;
+            await OnDone.InvokeAsync(photo);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Couldn't use that photo: {ex.Message}", Severity.Error);
+            _saving = false;
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        await DiscardAsync();
+        await OnDone.InvokeAsync(null);
+    }
+
+    private async Task DiscardAsync()
+    {
+        if (!_finished)
+        {
+            _finished = true;
+            await Photos.DiscardDraftAsync(Draft.Id);
+        }
+    }
+
+    // Leaving the page mid-crop drops the draft.
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DiscardAsync();
+        }
+        catch (Exception)
+        {
+            // The page is going away; the draft only lives in memory anyway.
+        }
+    }
+}
