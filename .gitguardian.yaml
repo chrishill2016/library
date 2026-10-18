@@ -1,0 +1,12 @@
+# GitGuardian / ggshield settings. https://docs.gitguardian.com/ggshield-docs/reference/gitguardian-yaml
+version: 2
+
+secret:
+  ignored_matches:
+    # The Firebase web API key in src/Bookshelf/wwwroot/appsettings.json (also used for Google Books).
+    # Not a secret: it ships in the app to every browser, and Firebase web keys are public by design.
+    # Data is protected by firestore.rules and storage.rules; the key itself is restricted in Google Cloud
+    # (APIs & Services → Credentials) to our website and to the Firebase and Books APIs.
+    # Stored as the SHA-256 of the key, so only this exact key is ignored. A new key will still be flagged.
+    - name: Firebase web API key (public by design, restricted in Google Cloud)
+      match: b25fa2391a0e04986e8703b6fda9ad509391722643e9c3553327f69bca9f8065
