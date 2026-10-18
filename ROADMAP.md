@@ -30,6 +30,10 @@
   - **Sold or given away:** keep the book, its ratings and reading history, but take it off the shelf (e.g. "Sold, March 2027"), with a filter to see past books.
   - **Lent out / borrowed:** books we've lent (to whom, since when) and books we've borrowed (from whom, from a library, due back), with reminders and "Returned".
   - **Kindle (and other e-books):** a format on each book (paper, Kindle, audiobook) so e-books can be logged and rated without counting as on the shelf, plus a filter by format.
+- **Synopsis for each book:** a short description on the book page.
+  - Filled in automatically when a book is scanned or found online (Google Books gives a description for most books; Open Library for some).
+  - Existing books get theirs on a one-off "fill in missing synopses" run, when online.
+  - Editable by hand (for books not found online, or to shorten a long blurb); searchable, with a "Read more" for long ones.
 - Shelves or tags (e.g. "Fiction", "Kids", "Loft box 3") and filtering by them.
 - Owner can remove a member, rename the library, or transfer ownership.
 - Live updates (Firestore listeners) instead of syncing on start, after edits, on reconnect and with "Sync now".
