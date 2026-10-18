@@ -9,6 +9,9 @@ public sealed class FakeBookLookup : IBookLookup
     public List<BookCandidate> SearchResults { get; } = [];
     public bool Unavailable { get; set; }
     public List<string> Lookups { get; } = [];
+    public Dictionary<string, string> ProblemsBySource { get; } = [];
+
+    public IReadOnlyDictionary<string, string> Problems => ProblemsBySource;
 
     public FakeBookLookup Add(string isbn13, string title, string author = "", string? cover = null)
     {

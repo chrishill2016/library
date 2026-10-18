@@ -51,7 +51,7 @@ public class BookSourceTests
     {
         _http.Status("isbn:", HttpStatusCode.TooManyRequests);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => Google().FindByIsbnAsync("9780261102217", default));
+        await Assert.ThrowsAnyAsync<HttpRequestException>(() => Google().FindByIsbnAsync("9780261102217", default));
     }
 
     [Fact]

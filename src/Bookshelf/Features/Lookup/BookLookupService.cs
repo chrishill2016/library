@@ -16,6 +16,9 @@ public interface IBookLookup
 
     /// <summary>Books matching title and/or author text, best first. Empty when nothing found or offline.</summary>
     Task<IReadOnlyList<BookCandidate>> SearchAsync(string query, CancellationToken cancellationToken = default);
+
+    /// <summary>The latest error from each source that refused to answer this session (e.g. Google's daily quota), by source name.</summary>
+    IReadOnlyDictionary<string, string> Problems { get; }
 }
 
 /// <summary>
@@ -26,6 +29,9 @@ public interface IBookLookup
 public sealed class BookLookupService(IEnumerable<IBookSource> sources) : IBookLookup
 {
     private readonly IReadOnlyList<IBookSource> _sources = [.. sources];
+    private readonly Dictionary<string, string> _problems = [];
+
+    public IReadOnlyDictionary<string, string> Problems => _problems;
 
     public async Task<LookupResult> LookupIsbnAsync(string isbn, CancellationToken cancellationToken = default)
     {
@@ -48,6 +54,20 @@ public sealed class BookLookupService(IEnumerable<IBookSource> sources) : IBookL
 
         if (merged is not null)
         {
+            if (merged.Synopsis is null)
+            {
+                // Google had none (or didn't answer): try sources that keep descriptions elsewhere.
+                foreach (var source in _sources.OfType<ISynopsisSource>())
+                {
+                    var (ok, synopsis) = await TryAsync(() => source.FindSynopsisAsync(isbn13, cancellationToken));
+                    if (ok && synopsis is not null)
+                    {
+                        merged = merged with { Synopsis = synopsis };
+                        break;
+                    }
+                }
+            }
+
             return new LookupResult(LookupOutcome.Found, merged with { Isbn = isbn13 });
         }
 
@@ -86,7 +106,7 @@ public sealed class BookLookupService(IEnumerable<IBookSource> sources) : IBookL
         return results;
     }
 
-    private static async Task<(bool Ok, T? Value)> TryAsync<T>(Func<Task<T>> call)
+    private async Task<(bool Ok, T? Value)> TryAsync<T>(Func<Task<T>> call)
     {
         try
         {
@@ -96,9 +116,15 @@ public sealed class BookLookupService(IEnumerable<IBookSource> sources) : IBookL
         {
             throw;
         }
+        catch (BookSourceException ex)
+        {
+            // The source answered with a reason (quota, key restrictions): keep it so Settings can say why.
+            _problems[ex.Source] = ex.Message[(ex.Source.Length + 2)..];
+            return (false, default);
+        }
         catch (Exception)
         {
-            // Offline, quota exceeded, unexpected JSON… treat as "this source is unavailable".
+            // Offline, unexpected JSON… treat as "this source is unavailable".
             return (false, default);
         }
     }

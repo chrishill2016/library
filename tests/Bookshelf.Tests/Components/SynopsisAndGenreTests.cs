@@ -165,4 +165,20 @@ public class SynopsisAndGenreTests : ComponentTestBase
         Assert.Equal(["Fantasy2 read", "Children's1 read"], genres.QuerySelectorAll("li").Select(li => li.TextContent.Trim()));
         Assert.Contains("The genre you read most is Fantasy", cut.Find("[data-testid=fun-facts]").TextContent);
     }
+
+    [Fact]
+    public async Task Settings_says_why_google_did_not_answer()
+    {
+        Services.AddSingleton(new Bookshelf.Theming.ThemeService(Store));
+        await SignInAsync();
+        Lookup.ProblemsBySource["Google Books"] = "Quota exceeded for quota metric 'Queries'.";
+        await Store.PutBookAsync(TestBooks.Make("h", "The Hobbit") with { Isbn = Hobbit });
+        var cut = Render<SettingsPage>();
+
+        cut.WaitForElement("[data-testid=fill-start]").Click();
+
+        var problem = cut.WaitForElement("[data-testid=source-problem]");
+        Assert.Contains("Google Books didn't answer", problem.TextContent);
+        Assert.Contains("Quota exceeded", problem.TextContent);
+    }
 }

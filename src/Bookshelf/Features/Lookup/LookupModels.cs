@@ -92,6 +92,19 @@ public interface IBookSource
     Task<IReadOnlyList<BookCandidate>> SearchAsync(string query, CancellationToken cancellationToken);
 }
 
+/// <summary>A source that can find a synopsis on its own, used when the main lookup found none.</summary>
+public interface ISynopsisSource
+{
+    /// <summary>The description for this ISBN-13, or null. Throws when unreachable.</summary>
+    Task<string?> FindSynopsisAsync(string isbn13, CancellationToken cancellationToken);
+}
+
+/// <summary>A source that answered with an error (quota, key restrictions…), as reported by the source.</summary>
+public sealed class BookSourceException(string source, string message) : HttpRequestException($"{source}: {message}")
+{
+    public string Source { get; } = source;
+}
+
 public static partial class LookupText
 {
     /// <summary>First four-digit year in "1996", "1996-09-01" or "Sep 01, 1996".</summary>
