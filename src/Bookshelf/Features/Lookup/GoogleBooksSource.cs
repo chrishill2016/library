@@ -35,7 +35,27 @@ public sealed class GoogleBooksSource(HttpClient http, LookupOptions options) : 
     private async Task<VolumesResponse?> GetAsync(string query, CancellationToken cancellationToken)
     {
         var key = string.IsNullOrWhiteSpace(options.GoogleBooksApiKey) ? "" : $"&key={Uri.EscapeDataString(options.GoogleBooksApiKey)}";
-        return await http.GetFromJsonAsync<VolumesResponse>($"{Endpoint}?{query}{key}", cancellationToken);
+        using var response = await http.GetAsync($"{Endpoint}?{query}{key}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            // Google explains itself (daily quota used up, key restrictions…); pass that on so Settings can show it.
+            var error = await ReadErrorAsync(response, cancellationToken);
+            throw new BookSourceException(Name, error ?? $"{(int)response.StatusCode} {response.ReasonPhrase}");
+        }
+
+        return await response.Content.ReadFromJsonAsync<VolumesResponse>(cancellationToken);
+    }
+
+    private static async Task<string?> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken))?.Error?.Message;
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or NotSupportedException)
+        {
+            return null;
+        }
     }
 
     internal static BookCandidate? ToCandidate(Volume volume)
@@ -78,6 +98,10 @@ public sealed class GoogleBooksSource(HttpClient http, LookupOptions options) : 
     }
 
     internal sealed record VolumesResponse([property: JsonPropertyName("items")] Volume[]? Items);
+
+    internal sealed record ErrorResponse([property: JsonPropertyName("error")] ErrorDetail? Error);
+
+    internal sealed record ErrorDetail([property: JsonPropertyName("message")] string? Message);
 
     internal sealed record Volume([property: JsonPropertyName("volumeInfo")] VolumeInfo? VolumeInfo);
 

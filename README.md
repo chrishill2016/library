@@ -98,6 +98,8 @@ The remote is Firestore (`FirestoreRemoteStore`):
 ## Synopses and genres
 
 - **Where they come from:** Google Books gives a `description` (often HTML, cleaned to plain text by `LookupText.Synopsis`, kept to 4,000 characters) and `categories` ("Fiction / Mystery & Detective"). Open Library gives `subjects` (many and noisy).
+- **Synopsis fallback:** when Google has no description (or doesn't answer), Open Library's is used. It lives on the *work*, so that's two extra requests (`/isbn/{isbn}.json` → `/works/{id}.json`), only for books still without one.
+- **When Google refuses** (daily quota used up, key restrictions), its own error message is kept and shown in Settings → Synopses & genres after a fill-in run.
 - **Genres** are keys from `GenreCatalogue` (e.g. `crime`), at most three per book, so labels can change without touching data. `GenreCatalogue.Suggest` matches whole words: a Google category's first part counts 3, later parts 2, each Open Library subject 1; non-fiction genres never come from fiction categories ("Fiction / Historical" isn't History).
 - **Filling existing books:** `BookDetailsFiller` (Settings) looks up books missing either, by ISBN or by exact title and first-author surname. It never overwrites, pauses between books, and syncs every 25 books rather than after each one.
 

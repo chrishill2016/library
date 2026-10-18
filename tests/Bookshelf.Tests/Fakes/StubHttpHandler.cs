@@ -16,6 +16,14 @@ public sealed class StubHttpHandler : HttpMessageHandler
                 System.Text.Encoding.UTF8, "application/json"),
         });
 
+    /// <summary>Answers with a status code and a fixture body (e.g. an API's error JSON).</summary>
+    public StubHttpHandler On(string urlFragment, HttpStatusCode status, string fixture) =>
+        On(urlFragment, () => new HttpResponseMessage(status)
+        {
+            Content = new StringContent(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Lookup", "Fixtures", fixture)),
+                System.Text.Encoding.UTF8, "application/json"),
+        });
+
     public StubHttpHandler Status(string urlFragment, HttpStatusCode status) =>
         On(urlFragment, () => new HttpResponseMessage(status) { Content = new StringContent("{}") });
 

@@ -7,6 +7,7 @@
 @inject Bookshelf.Features.Photos.PhotoService Photos
 @inject DashboardPreferences DashboardPrefs
 @inject Bookshelf.Features.Lookup.BookDetailsFiller Filler
+@inject Bookshelf.Features.Lookup.IBookLookup BookLookup
 @inject IConnectivityService Connectivity
 
 <PageTitle>Settings · Bookshelf</PageTitle>
@@ -72,6 +73,16 @@
                 Last run: filled in @Filler.Filled of the @Filler.Checked books checked.
                 @Filler.StoppedReason
             </MudText>
+            @foreach (var (source, problem) in BookLookup.Problems)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2" data-testid="source-problem">
+                    @source didn't answer: “@problem”
+                    @if (source == "Google Books")
+                    {
+                        <span> Synopses mostly come from Google Books. If it says the daily quota is used up, run this again tomorrow to carry on.</span>
+                    }
+                </MudAlert>
+            }
         }
         <MudText Typo="Typo.body2" Class="mb-2 text-secondary" data-testid="fill-missing">
             @(_missing switch
