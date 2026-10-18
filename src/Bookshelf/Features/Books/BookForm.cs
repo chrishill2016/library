@@ -19,6 +19,10 @@ public sealed class BookForm
     public string? CoverUrl { get; set; }
     public string? Notes { get; set; }
     public string? PhotoId { get; set; }
+    public string? Synopsis { get; set; }
+
+    /// <summary>Genre keys (see <c>GenreCatalogue</c>), at most three.</summary>
+    public IReadOnlyCollection<string> Genres { get; set; } = [];
 
     /// <summary>Not owned yet: kept off the shelf and put on the reading list.</summary>
     public bool OnWishlist { get; set; }
@@ -42,6 +46,8 @@ public sealed class BookForm
         Notes = book.Notes,
         PhotoId = book.PhotoId,
         OnWishlist = book.OnWishlist,
+        Synopsis = book.Synopsis,
+        Genres = [.. book.Genres],
     };
 
     public Book ToBook() => (_original ?? new Book { Id = _newId }) with
@@ -55,13 +61,17 @@ public sealed class BookForm
         Notes = Notes,
         PhotoId = PhotoId,
         OnWishlist = OnWishlist,
+        Synopsis = Synopsis,
+        Genres = Bookshelf.Features.Genres.GenreCatalogue.Normalize(Genres),
         // Saving the form means a person has checked the details.
         LookupState = null,
     };
 
-    /// <summary>Fills the form from an online lookup, keeping notes.</summary>
+    /// <summary>Fills the form from an online lookup, keeping notes (and any synopsis or genres already chosen).</summary>
     public void Apply(BookCandidate found)
     {
+        Synopsis = string.IsNullOrWhiteSpace(Synopsis) ? found.Synopsis : Synopsis;
+        Genres = Genres.Count > 0 ? Genres : [.. found.SuggestedGenres];
         Title = found.Title;
         Author = found.Author;
         Isbn = found.Isbn ?? Isbn;

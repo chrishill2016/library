@@ -43,6 +43,16 @@
         <MudSelectItem Value="BookSort.RecentlyAdded">Recently added</MudSelectItem>
         <MudSelectItem Value="BookSort.MyRating">My rating</MudSelectItem>
     </MudSelect>
+    @if (_genreCounts.Count > 0)
+    {
+        <MudSelect T="string" Value="_genre" ValueChanged="OnGenreChanged" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Label="Genre" Class="shelf-sort" Clearable="true" data-testid="genre-filter">
+            @foreach (var (key, count) in _genreCounts)
+            {
+                <MudSelectItem T="string" Value="key">@GenreCatalogue.Label(key) (@count)</MudSelectItem>
+            }
+        </MudSelect>
+    }
 </div>
 
 @if (_all is { Count: > 0 })
@@ -125,6 +135,11 @@ else
     private string _query = "";
     private BookSort _sort = BookSort.Title;
     private ReadingFilter _filter = ReadingFilter.All;
+    private string? _genre;
+    private IReadOnlyList<(string Key, int Count)> _genreCounts = [];
+
+    /// <summary><c>./?genre=crime</c> opens the shelf filtered to a genre (from a book's genre tag).</summary>
+    [SupplyParameterFromQuery(Name = "genre")] public string? GenreQuery { get; set; }
 
     private LibraryStats? _summary;
 
@@ -132,6 +147,7 @@ else
 
     private string NoMatchesMessage => (_query.Trim(), _filter) switch
     {
+        ("", ReadingFilter.All) when _genre is { } g => $"No books in “{GenreCatalogue.Label(g)}”.",
         ("", ReadingFilter.All) => "Nothing on the shelf yet, only wishlist books.",
         ("", ReadingFilter.Wishlist) => "Nothing on the wishlist. Add books you'd like from “Find online”.",
         ("", var f) => $"No books marked “{Filters.First(x => x.Filter == f).Label}”.",
@@ -165,9 +181,30 @@ else
         Apply();
     }
 
+    protected override void OnParametersSet()
+    {
+        if (GenreQuery is { } genre && GenreCatalogue.Get(genre) is not null && genre != _genre)
+        {
+            _genre = genre;
+            Apply();
+        }
+    }
+
+    private void OnGenreChanged(string? genre)
+    {
+        _genre = genre;
+        Apply();
+    }
+
     private void Apply()
     {
-        var matching = BookSearch.FilterByReading(BookSearch.Filter(_all ?? [], _query), _filter, Mine);
+        // Genres in the catalogue's order, with how many books on the shelf have each.
+        var shelf = (_all ?? []).Where(b => !b.OnWishlist).ToList();
+        _genreCounts = [.. GenreCatalogue.All
+            .Select(g => (g.Key, Count: shelf.Count(b => b.Genres.Contains(g.Key))))
+            .Where(g => g.Count > 0 || g.Key == _genre)];
+        var matching = BookSearch.FilterByReading(
+            BookSearch.FilterByGenre(BookSearch.Filter(_all ?? [], _query), _genre), _filter, Mine);
         _visible = [.. BookSearch.Sort(matching, _sort, Mine)];
         // On the full shelf, books being read now are pinned at the top.
         _readingNow = _filter == ReadingFilter.All ? [.. _visible.Where(b => Mine(b)?.Status == ReadingStatus.Reading)] : [];

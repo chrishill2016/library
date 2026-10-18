@@ -57,7 +57,11 @@ public sealed class GoogleBooksSource(HttpClient http, LookupOptions options) : 
             LookupText.Clean(info.Publisher),
             LookupText.Year(info.PublishedDate),
             CoverUrl(info.ImageLinks),
-            "Google Books");
+            "Google Books")
+        {
+            Synopsis = LookupText.Synopsis(info.Description),
+            Categories = [.. (info.Categories ?? []).Where(c => !string.IsNullOrWhiteSpace(c))],
+        };
     }
 
     /// <summary>Google returns http links with a page-curl effect; use https and a flat cover.</summary>
@@ -83,7 +87,9 @@ public sealed class GoogleBooksSource(HttpClient http, LookupOptions options) : 
         [property: JsonPropertyName("publisher")] string? Publisher,
         [property: JsonPropertyName("publishedDate")] string? PublishedDate,
         [property: JsonPropertyName("industryIdentifiers")] IndustryIdentifier[]? IndustryIdentifiers,
-        [property: JsonPropertyName("imageLinks")] ImageLinks? ImageLinks);
+        [property: JsonPropertyName("imageLinks")] ImageLinks? ImageLinks,
+        [property: JsonPropertyName("description")] string? Description = null,
+        [property: JsonPropertyName("categories")] string[]? Categories = null);
 
     internal sealed record IndustryIdentifier(
         [property: JsonPropertyName("type")] string? Type,

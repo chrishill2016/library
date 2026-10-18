@@ -94,4 +94,16 @@ public class PendingLookupServiceTests
         Assert.Equal(0, await _sut.RunAsync());
         Assert.Empty(_lookup.Lookups);
     }
+
+    [Fact]
+    public async Task Fills_in_synopsis_and_genres_too()
+    {
+        _lookup.Known[Hobbit] = _lookup.Known[Hobbit] with { Synopsis = "There and back again.", Categories = ["Juvenile Fiction / Fantasy & Magic"] };
+        var pending = await PendingAsync(Hobbit);
+
+        await _sut.RunAsync();
+
+        Assert.Equal("There and back again.", _store.Books[pending.Id].Synopsis);
+        Assert.Equal(["fantasy", "children"], _store.Books[pending.Id].Genres);
+    }
 }

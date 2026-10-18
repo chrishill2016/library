@@ -14,6 +14,12 @@ public sealed record Book
     /// <summary>Our own cover photo (Firebase Storage <c>libraries/{id}/covers/{PhotoId}.jpg</c>); shown instead of <see cref="CoverUrl"/>.</summary>
     public string? PhotoId { get; init; }
     public string? Notes { get; init; }
+
+    /// <summary>What the book is about: from Google Books / Open Library when found, editable.</summary>
+    public string? Synopsis { get; init; }
+
+    /// <summary>Up to three keys from <c>GenreCatalogue</c> (e.g. "crime"), suggested from online categories.</summary>
+    public IReadOnlyList<string> Genres { get; init; } = [];
     public DateTimeOffset AddedUtc { get; init; }
 
     /// <summary>UTC time of the last change; used for last-write-wins sync.</summary>

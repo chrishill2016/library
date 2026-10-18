@@ -48,6 +48,7 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<LibraryService>();
         Services.AddSingleton<IBookLookup>(Lookup);
         Services.AddSingleton<PendingLookupService>();
+        Services.AddSingleton(sp => new BookDetailsFiller(sp.GetRequiredService<BookService>(), Lookup, Connectivity) { Pause = TimeSpan.Zero });
         Services.AddSingleton<ScanService>();
         Services.AddSingleton<IBarcodeScanner>(Scanner);
         Services.AddSingleton<IPhotoStore>(Photos);

@@ -33,7 +33,7 @@ public static class BookSearch
 
     /// <summary>
     /// Matches books where every word of <paramref name="query"/> appears in the
-    /// title, author or ISBN (ignoring case, accents and ISBN hyphens).
+    /// title, author, ISBN, genres or synopsis (ignoring case, accents and ISBN hyphens).
     /// </summary>
     public static IEnumerable<Book> Filter(IEnumerable<Book> books, string? query)
     {
@@ -45,7 +45,8 @@ public static class BookSearch
 
         return books.Where(book =>
         {
-            var haystack = Normalize($"{book.Title} {book.Author} {book.Isbn} {Isbn.Normalize(book.Isbn)}");
+            var genres = string.Join(' ', book.Genres.Select(Genres.GenreCatalogue.Label));
+            var haystack = Normalize($"{book.Title} {book.Author} {book.Isbn} {Isbn.Normalize(book.Isbn)} {genres} {book.Synopsis}");
             return terms.All(haystack.Contains);
         });
     }
@@ -54,6 +55,10 @@ public static class BookSearch
     /// Sorts the shelf. <paramref name="mine"/> gives the signed-in person's reading of a book
     /// (for <see cref="BookSort.MyRating"/>: highest first, unrated last, then by title).
     /// </summary>
+    /// <summary>Books with this genre key; all books when null.</summary>
+    public static IEnumerable<Book> FilterByGenre(IEnumerable<Book> books, string? genre) =>
+        genre is null ? books : books.Where(b => b.Genres.Contains(genre));
+
     public static IEnumerable<Book> Sort(IEnumerable<Book> books, BookSort sort, Func<Book, Reading?>? mine = null) => sort switch
     {
         BookSort.Author => books.OrderBy(b => AuthorSortKey(b.Author), StringComparer.OrdinalIgnoreCase)

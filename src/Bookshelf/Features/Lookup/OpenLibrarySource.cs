@@ -9,7 +9,7 @@ public sealed class OpenLibrarySource(HttpClient http) : IBookSource
 {
     private const string BooksEndpoint = "https://openlibrary.org/api/books";
     private const string SearchEndpoint = "https://openlibrary.org/search.json";
-    private const string SearchFields = "key,title,author_name,first_publish_year,isbn,cover_i,publisher";
+    private const string SearchFields = "key,title,author_name,first_publish_year,isbn,cover_i,publisher,subject";
 
     public string Name => "Open Library";
 
@@ -43,7 +43,10 @@ public sealed class OpenLibrarySource(HttpClient http) : IBookSource
             LookupText.Clean(edition.Publishers?.FirstOrDefault()?.Name),
             LookupText.Year(edition.PublishDate),
             edition.Cover?.Medium ?? edition.Cover?.Large ?? edition.Cover?.Small,
-            "Open Library");
+            "Open Library")
+        {
+            Subjects = [.. (edition.Subjects ?? []).Select(s => s.Name).OfType<string>()],
+        };
     }
 
     internal static BookCandidate? ToCandidate(SearchDoc doc)
@@ -62,7 +65,10 @@ public sealed class OpenLibrarySource(HttpClient http) : IBookSource
             LookupText.Clean(doc.Publisher?.FirstOrDefault()),
             doc.FirstPublishYear,
             doc.CoverId is { } id ? $"https://covers.openlibrary.org/b/id/{id}-M.jpg" : null,
-            "Open Library");
+            "Open Library")
+        {
+            Subjects = [.. (doc.Subject ?? []).Take(40)],
+        };
     }
 
     internal sealed record Edition(
@@ -70,7 +76,8 @@ public sealed class OpenLibrarySource(HttpClient http) : IBookSource
         [property: JsonPropertyName("authors")] NamedItem[]? Authors,
         [property: JsonPropertyName("publishers")] NamedItem[]? Publishers,
         [property: JsonPropertyName("publish_date")] string? PublishDate,
-        [property: JsonPropertyName("cover")] Cover? Cover);
+        [property: JsonPropertyName("cover")] Cover? Cover,
+        [property: JsonPropertyName("subjects")] NamedItem[]? Subjects = null);
 
     internal sealed record NamedItem([property: JsonPropertyName("name")] string? Name);
 
@@ -87,5 +94,6 @@ public sealed class OpenLibrarySource(HttpClient http) : IBookSource
         [property: JsonPropertyName("first_publish_year")] int? FirstPublishYear,
         [property: JsonPropertyName("isbn")] string[]? Isbn,
         [property: JsonPropertyName("cover_i")] long? CoverId,
-        [property: JsonPropertyName("publisher")] string[]? Publisher);
+        [property: JsonPropertyName("publisher")] string[]? Publisher,
+        [property: JsonPropertyName("subject")] string[]? Subject = null);
 }

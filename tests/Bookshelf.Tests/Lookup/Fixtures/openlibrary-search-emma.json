@@ -5,16 +5,35 @@
     {
       "key": "/works/OL66562W",
       "title": "Emma",
-      "author_name": ["Jane Austen"],
+      "author_name": [
+        "Jane Austen"
+      ],
       "first_publish_year": 1815,
-      "isbn": ["0141439580", "9780141439587", "9781853260285"],
+      "isbn": [
+        "0141439580",
+        "9780141439587",
+        "9781853260285"
+      ],
       "cover_i": 9278312,
-      "publisher": ["Penguin Classics", "Wordsworth"]
+      "publisher": [
+        "Penguin Classics",
+        "Wordsworth"
+      ],
+      "subject": [
+        "Fiction",
+        "Love stories",
+        "Classic literature",
+        "Social classes",
+        "Matchmaking"
+      ]
     },
     {
       "key": "/works/OL1W",
       "title": "Emma and the Vampires",
-      "author_name": ["Wayne Josephson", "Jane Austen"],
+      "author_name": [
+        "Wayne Josephson",
+        "Jane Austen"
+      ],
       "first_publish_year": 2010
     }
   ]
