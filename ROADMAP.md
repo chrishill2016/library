@@ -34,7 +34,11 @@
   - Filled in automatically when a book is scanned or found online (Google Books gives a description for most books; Open Library for some).
   - Existing books get theirs on a one-off "fill in missing synopses" run, when online.
   - Editable by hand (for books not found online, or to shorten a long blurb); searchable, with a "Read more" for long ones.
-- Shelves or tags (e.g. "Fiction", "Kids", "Loft box 3") and filtering by them.
+- **Genres and tags:**
+  - **Genre** on each book (e.g. Crime, Fantasy, History, Cookery, Children's), suggested automatically from Google Books categories / Open Library subjects when a book is scanned or found online, and editable.
+  - A tidy, fixed genre list so similar online categories ("Fiction / Mystery & Detective", "Detective and mystery stories") land in one genre.
+  - Free-form **tags** too (e.g. "Signed", "Kids", "Loft box 3", "Christmas"), several per book.
+  - Filter and browse the shelf by genre or tag, and "fill in missing genres" for books already on the shelf.
 - Owner can remove a member, rename the library, or transfer ownership.
 - Live updates (Firestore listeners) instead of syncing on start, after edits, on reconnect and with "Sync now".
 - Export or backup of the collection (CSV or JSON).
