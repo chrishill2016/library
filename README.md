@@ -115,6 +115,8 @@ The remote is Firestore (`FirestoreRemoteStore`):
 ## Firebase setup
 
 - **Project:** `bookshelf-3a8ee`. The web config is in `src/Bookshelf/wwwroot/appsettings.json`; it's public by design, and the rules protect the data.
+  - The API key (also used for Google Books) is restricted in Google Cloud → APIs & Services → Credentials to `https://chrishill2016.github.io/*` and `http://localhost/*`, and to the Firebase APIs plus the Books API.
+  - Secret scanners flag it; `.gitguardian.yaml` marks this exact key (by SHA-256) as known and public.
 - **Authorized domains:** Authentication → Settings must include `chrishill2016.github.io` and `localhost`.
 - **Deploying rules:**
   - Paste `firestore.rules` into Firestore → Rules → Publish, and `storage.rules` into Storage → Rules → Publish.
