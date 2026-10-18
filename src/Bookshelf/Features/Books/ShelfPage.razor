@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject BookService Books
 @inject ReadingService Readings
+@inject DashboardPreferences DashboardPrefs
+@inject TimeProvider Time
 
 <PageTitle>Bookshelf</PageTitle>
 
@@ -12,6 +14,22 @@
         <MudText Typo="Typo.body2" Class="text-secondary" data-testid="book-count">@CountLabel</MudText>
     }
 </div>
+
+@if (_summary is { OnShelf: > 0 } summary)
+{
+    <a class="shelf-summary" href="dashboard" aria-label="At a glance: your reading stats" data-testid="shelf-summary">
+        <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Small" />
+        <span class="shelf-summary-text">
+            @summary.ReadInPeriod read @summary.PeriodLabel
+            · @summary.ReadAllTime.ToString("N0") read in all
+            @if (summary.ReadingNow > 0)
+            {
+                <span> · @summary.ReadingNow reading now</span>
+            }
+        </span>
+        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" Class="shelf-summary-more" />
+    </a>
+}
 
 <div class="shelf-toolbar">
     <MudTextField T="string" Value="_query" ValueChanged="OnQueryChanged" Immediate="true"
@@ -108,6 +126,8 @@ else
     private BookSort _sort = BookSort.Title;
     private ReadingFilter _filter = ReadingFilter.All;
 
+    private LibraryStats? _summary;
+
     private Reading? Mine(Book book) => _mine.GetValueOrDefault(book.Id);
 
     private string NoMatchesMessage => (_query.Trim(), _filter) switch
@@ -132,6 +152,7 @@ else
     {
         Books.Changed += OnBooksChanged;
         Readings.Changed += OnBooksChanged;
+        DashboardPrefs.Changed += OnBooksChanged;
         await LoadAsync();
     }
 
@@ -139,6 +160,8 @@ else
     {
         _all = await Books.GetAllAsync();
         _mine = await Readings.GetMyReadingsAsync();
+        _summary = Readings.MyUid is null ? null : LibraryStatsCalculator.Calculate(
+            _all, [.. _mine.Values], await DashboardPrefs.GetPeriodAsync(), DateOnly.FromDateTime(Time.GetLocalNow().DateTime));
         Apply();
     }
 
@@ -179,5 +202,6 @@ else
     {
         Books.Changed -= OnBooksChanged;
         Readings.Changed -= OnBooksChanged;
+        DashboardPrefs.Changed -= OnBooksChanged;
     }
 }

@@ -5,6 +5,7 @@
 @inject AuthService Auth
 @inject IDialogService Dialogs
 @inject Bookshelf.Features.Photos.PhotoService Photos
+@inject DashboardPreferences DashboardPrefs
 
 <PageTitle>Settings · Bookshelf</PageTitle>
 
@@ -49,6 +50,16 @@
             </button>
         }
     </div>
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-2">At a glance</MudText>
+    <MudText Typo="Typo.body2" Class="mb-2 text-secondary">What “this year” means on the shelf summary and the At a glance page.</MudText>
+    <MudRadioGroup T="StatsPeriod" Value="_period" ValueChanged="SetPeriodAsync" data-testid="stats-period">
+        <MudRadio T="StatsPeriod" Value="StatsPeriod.CalendarYear" Color="Color.Primary" data-testid="period-calendar">Calendar year (since 1 January)</MudRadio>
+        <MudRadio T="StatsPeriod" Value="StatsPeriod.Last12Months" Color="Color.Primary" data-testid="period-rolling">Last 12 months</MudRadio>
+    </MudRadioGroup>
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Href="dashboard" StartIcon="@Icons.Material.Filled.Insights" Class="mt-1">Open At a glance</MudButton>
 </MudPaper>
 
 <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
@@ -101,6 +112,16 @@
         {
             await Auth.SignOutAsync();
         }
+    }
+
+    private StatsPeriod _period;
+
+    protected override async Task OnInitializedAsync() => _period = await DashboardPrefs.GetPeriodAsync();
+
+    private async Task SetPeriodAsync(StatsPeriod period)
+    {
+        _period = period;
+        await DashboardPrefs.SetPeriodAsync(period);
     }
 
     protected override void OnInitialized()

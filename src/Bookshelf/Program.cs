@@ -1,6 +1,7 @@
 using Bookshelf;
 using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
+using Bookshelf.Features.Dashboard;
 using Bookshelf.Features.Library;
 using Bookshelf.Features.Lookup;
 using Bookshelf.Features.Photos;
@@ -38,6 +39,7 @@ builder.Services.AddSingleton<IRemoteStore, FirestoreRemoteStore>();
 builder.Services.AddSingleton<ISyncService, SyncService>();
 builder.Services.AddSingleton<BookService>();
 builder.Services.AddSingleton<ReadingService>();
+builder.Services.AddSingleton<DashboardPreferences>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<LibraryService>();
 builder.Services.AddSingleton<ThemeService>();

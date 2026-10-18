@@ -1,0 +1,263 @@
+@page "/dashboard"
+@implements IDisposable
+@inject BookService Books
+@inject ReadingService Readings
+@inject DashboardPreferences Preferences
+@inject TimeProvider Time
+
+<PageTitle>At a glance · Bookshelf</PageTitle>
+
+<MudButton Href="./" StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Class="mb-2">The Shelf</MudButton>
+
+<div class="page-heading">
+    <MudText Typo="Typo.h4" HtmlTag="h1">At a glance</MudText>
+    @if (_stats is not null)
+    {
+        <MudText Typo="Typo.body2" Class="text-secondary">
+            “This year” means @(_stats.Period == StatsPeriod.CalendarYear ? "since 1 January" : "the last 12 months").
+            <MudLink Href="settings" Typo="Typo.body2">Change</MudLink>
+        </MudText>
+    }
+</div>
+
+@if (_stats is not { } s)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <section class="stats-hero tooled-panel mud-paper mud-elevation-3 pa-4 mb-4" data-testid="hero">
+        <span class="stat-hero-value">@s.ReadInPeriod</span>
+        <span class="stat-hero-label">@(s.ReadInPeriod == 1 ? "book" : "books") finished @s.PeriodLabel</span>
+        @if (s.LastFinished is { } last)
+        {
+            <span class="stat-hero-sub">Last finished: <a href="books/@last.Book.Id">@last.Book.Title</a> (@last.Date)</span>
+        }
+    </section>
+
+    <div class="stat-grid mb-4">
+        <a class="stat-tile" href="./" data-testid="tile-shelf"><span class="stat-value">@s.OnShelf.ToString("N0")</span><span class="stat-label">On the shelf</span></a>
+        <div class="stat-tile" data-testid="tile-read"><span class="stat-value">@s.ReadAllTime.ToString("N0")</span><span class="stat-label">Read, all time</span></div>
+        <div class="stat-tile" data-testid="tile-unread"><span class="stat-value">@s.UnreadOnShelf.ToString("N0")</span><span class="stat-label">On the shelf, not read yet</span></div>
+        <div class="stat-tile"><span class="stat-value">@s.ReadingNow</span><span class="stat-label">Reading now</span></div>
+        <a class="stat-tile" href="reading-list"><span class="stat-value">@s.OnReadingList</span><span class="stat-label">On your reading list</span></a>
+        <div class="stat-tile"><span class="stat-value">@s.AddedInPeriod</span><span class="stat-label">Added @s.PeriodLabel</span></div>
+        @if (s.OnWishlist > 0)
+        {
+            <div class="stat-tile"><span class="stat-value">@s.OnWishlist</span><span class="stat-label">On the wishlist</span></div>
+        }
+    </div>
+
+    @if (!s.HasReadingData)
+    {
+        <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3" data-testid="no-reading">
+            <MudText Typo="Typo.h6" Class="mb-1">Your reading story starts here</MudText>
+            <MudText Typo="Typo.body2">
+                Rate books, mark what you're reading and add the dates you finished them (even just the year),
+                and this page fills with your reading years, favourite authors and five-star books.
+            </MudText>
+        </MudPaper>
+    }
+    else
+    {
+        @if (s.ReadsPerYear.Count > 0)
+        {
+            <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">Books finished per year</MudText>
+                <MudText Typo="Typo.caption" Class="text-secondary d-block mb-2">Tap a year to see what you read.</MudText>
+                <YearBarChart Years="s.ReadsPerYear" Selected="_year" SelectedChanged="SelectYear" />
+            </MudPaper>
+        }
+
+        @if (_year is { } year)
+        {
+            <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3" data-testid="year-in-books">
+                <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-2">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">@year in books</MudText>
+                    <div class="filter-chips year-chips" role="group" aria-label="Year">
+                        @foreach (var y in _years.Take(6))
+                        {
+                            var pick = y;
+                            <button type="button" class="filter-chip @(pick == year ? "selected" : null)"
+                                    aria-pressed="@(pick == year ? "true" : "false")" @onclick="() => SelectYear(pick)">@pick</button>
+                        }
+                    </div>
+                </div>
+                @if (_yearBooks.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary">Nothing finished in @year yet.</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body1" Class="mb-2 year-summary" data-testid="year-summary">
+                        @_yearBooks.Count @(_yearBooks.Count == 1 ? "book" : "books") finished.
+                        @if (YearFavourite is { } favourite)
+                        {
+                            <span>Favourite: <a href="books/@favourite.Book.Id">@favourite.Book.Title</a> (@favourite.Reading.Rating★).</span>
+                        }
+                    </MudText>
+                    <ol class="year-books">
+                        @foreach (var read in _yearBooks)
+                        {
+                            <li>
+                                <a href="books/@read.Book.Id" class="year-book">
+                                    <BookCover Book="read.Book" />
+                                    <span class="year-book-text">
+                                        <span class="book-row-title">@read.Book.Title</span>
+                                        <span class="book-row-author">@read.Book.Author</span>
+                                        <span class="year-book-meta">
+                                            @if (read.Reading.Rating is { } stars)
+                                            {
+                                                <StarRating Value="stars" ReadOnly="true" Size="Size.Small" />
+                                            }
+                                            <span class="text-secondary">@read.Date</span>
+                                        </span>
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                    </ol>
+                }
+            </MudPaper>
+        }
+
+        @if (s.Rated > 0)
+        {
+            <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3" data-testid="ratings">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">Your ratings</MudText>
+                <MudText Typo="Typo.body2" Class="text-secondary mb-2">
+                    @s.Rated @(s.Rated == 1 ? "book" : "books") rated, averaging @s.AverageRating?.ToString("0.0") stars.
+                </MudText>
+                <div class="rating-bars">
+                    @for (var stars = 5; stars >= 1; stars--)
+                    {
+                        var count = s.RatingCounts[stars - 1];
+                        var max = s.RatingCounts.Max();
+                        <div class="rating-bar-row" title="@stars stars: @count" data-testid="rating-row">
+                            <span class="rating-bar-label">@stars★</span>
+                            <span class="rating-bar-track">
+                                <span class="rating-bar" style="width: @((max == 0 ? 0 : Math.Max(count == 0 ? 0 : 2, 100.0 * count / max)).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                            </span>
+                            <span class="rating-bar-count">@count</span>
+                        </div>
+                    }
+                </div>
+            </MudPaper>
+        }
+
+        @if (s.TopAuthors.Count > 0 || s.FiveStarBooks.Count > 0)
+        {
+            <div class="stat-columns mb-4">
+                @if (s.TopAuthors.Count > 0)
+                {
+                    <MudPaper Class="pa-4 tooled-panel" Elevation="3" data-testid="top-authors">
+                        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Most-read authors</MudText>
+                        <ol class="ranked-list">
+                            @foreach (var author in s.TopAuthors)
+                            {
+                                <li><span>@author.Author</span><span class="text-secondary">@author.Books books</span></li>
+                            }
+                        </ol>
+                    </MudPaper>
+                }
+                @if (s.FiveStarBooks.Count > 0)
+                {
+                    <MudPaper Class="pa-4 tooled-panel" Elevation="3" data-testid="five-stars">
+                        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Your five-star books</MudText>
+                        <ul class="ranked-list">
+                            @foreach (var book in s.FiveStarBooks.Take(8))
+                            {
+                                <li><a href="books/@book.Id">@book.Title</a><span class="text-secondary">@book.Author</span></li>
+                            }
+                        </ul>
+                        @if (s.FiveStarBooks.Count > 8)
+                        {
+                            <MudText Typo="Typo.caption" Class="text-secondary">and @(s.FiveStarBooks.Count - 8) more</MudText>
+                        }
+                    </MudPaper>
+                }
+            </div>
+        }
+    }
+
+    <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3" data-testid="fun-facts">
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">From the stacks</MudText>
+        <ul class="fact-list">
+            @if (s.OldestBook is { } oldest)
+            {
+                <li>The oldest book on the shelf is <a href="books/@oldest.Id">@oldest.Title</a>, published in @oldest.PublishedYear.</li>
+            }
+            @if (s.NextUp is { } next)
+            {
+                <li>Next up on your reading list: <a href="books/@next.Id">@next.Title</a>.</li>
+            }
+            @if (s.OnShelf > 0)
+            {
+                <li>You've read @Percent(s.OnShelf - s.UnreadOnShelf, s.OnShelf) of the books on the shelf.</li>
+            }
+            @if (s.TopAuthors.FirstOrDefault() is { } top)
+            {
+                <li>Your most-read author is @top.Author, with @top.Books books.</li>
+            }
+        </ul>
+    </MudPaper>
+}
+
+@code {
+    private LibraryStats? _stats;
+    private IReadOnlyList<int> _years = [];
+    private int? _year;
+    private IReadOnlyList<ReadBook> _yearBooks = [];
+    private IReadOnlyList<Book> _books = [];
+    private IReadOnlyList<Reading> _mine = [];
+
+    private ReadBook? YearFavourite => _yearBooks.Where(r => r.Reading.Rating is >= 4).OrderByDescending(r => r.Reading.Rating).ThenByDescending(r => r.Date).FirstOrDefault();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Books.Changed += OnChanged;
+        Readings.Changed += OnChanged;
+        Preferences.Changed += OnChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _books = await Books.GetAllAsync();
+        var uid = Readings.MyUid;
+        _mine = uid is null ? [] : [.. (await Readings.GetAllAsync()).Where(r => r.Uid == uid)];
+        var today = DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+        _stats = LibraryStatsCalculator.Calculate(_books, _mine, await Preferences.GetPeriodAsync(), today);
+        _years = LibraryStatsCalculator.YearsWithReads(_mine);
+        // Default to this year if I've finished anything in it, else the latest year I did.
+        _year = _year is { } chosen && (_years.Contains(chosen) || chosen == today.Year) ? chosen
+            : _years.Contains(today.Year) ? today.Year
+            : _years.FirstOrDefault() is > 0 and var latest ? latest
+            : null;
+        LoadYear();
+    }
+
+    private void SelectYear(int year)
+    {
+        _year = year;
+        LoadYear();
+    }
+
+    private void LoadYear() => _yearBooks = _year is { } y ? LibraryStatsCalculator.ReadInYear(_books, _mine, y) : [];
+
+    private static string Percent(int part, int whole) =>
+        whole == 0 ? "0%" : part > 0 && part * 100 / whole == 0 ? "under 1%" : $"{part * 100 / whole}%";
+
+    private void OnChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        Books.Changed -= OnChanged;
+        Readings.Changed -= OnChanged;
+        Preferences.Changed -= OnChanged;
+    }
+}
