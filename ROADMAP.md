@@ -21,6 +21,7 @@
   - Shelf shows your stars and status, pins books you're reading, filters by status and sorts by your rating.
   - Rules let each person write only their own reading, with emulator tests.
   - Reading lists: an ordered "to read next" list each (drag to reorder), with wishlist books we don't own yet.
+- [x] **At a glance (dashboard):** my books finished this year (calendar year or last 12 months, set in Settings), per-year chart, "year in books", ratings breakdown, most-read authors, five-star books and fun facts; a summary strip on the shelf. Later: counts for lent/sold/Kindle and genres once those exist, and side-by-side stats for both of us.
 - [x] **More bindings (themes):** Cloth-bound Green, Library at Night, Parchment (light) and Marbled Endpapers (light), alongside Leather & Gilt; each checked for readable contrast.
 - [x] **Firebase budget alert** set up in the console, so costs never get silly.
 
@@ -44,11 +45,5 @@
 - Export or backup of the collection (CSV or JSON).
 - Bulk "retry lookup" for books flagged as not found.
 - "Take cover photo" straight from the scan list for books not found online; shelf filter for books without covers.
-- **Dashboard** of library and reading stats, e.g.:
-  - Books on the shelf (and on the wishlist, lent out, on Kindle); added this year.
-  - Books read: all time, this year, and per year (a small chart), for each of us and together.
-  - Currently reading and reading list length; average rating and favourite authors.
-  - Fun extras: most-read author, oldest book on the shelf, longest-waiting book on the reading list, books we've both read, "unread for 10+ years".
-  - A "year in books" summary.
 - Show the other person's stars on the shelf too, or a "we both loved it" filter.
 - Barcode scanning on iPhone (needs a JS barcode library, as Safari has no `BarcodeDetector`).

@@ -1,5 +1,6 @@
 using Bookshelf.Features.Account;
 using Bookshelf.Features.Books;
+using Bookshelf.Features.Dashboard;
 using Bookshelf.Features.Library;
 using Bookshelf.Features.Lookup;
 using Bookshelf.Features.Photos;
@@ -51,6 +52,7 @@ public abstract class ComponentTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<IBarcodeScanner>(Scanner);
         Services.AddSingleton<IPhotoStore>(Photos);
         Services.AddSingleton<PhotoService>();
+        Services.AddSingleton(new DashboardPreferences(Store));
         Services.AddSingleton(sp => new ReadingService(Store, sp.GetRequiredService<ISyncService>(), sp.GetRequiredService<AuthService>(), Time));
     }
 

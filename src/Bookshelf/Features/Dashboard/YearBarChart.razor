@@ -1,0 +1,50 @@
+@* Books finished per year: one series, so no legend (the heading names it). Tap a bar to choose the year.
+   Only the selected year and the busiest year carry value labels; every bar has a tooltip and aria label,
+   and the same numbers are in the table below. *@
+<div class="bar-chart" role="group" aria-label="Books finished per year" data-testid="year-chart">
+    <div class="bar-plot">
+        @foreach (var year in Years)
+        {
+            var y = year;
+            var height = Max == 0 ? 0 : Math.Max(y.Books == 0 ? 0 : 4, 100.0 * y.Books / Max);
+            var showLabel = y.Year == Selected || (y.Books == Max && Max > 0);
+            <button type="button" class="bar-slot @(y.Year == Selected ? "selected" : null)"
+                    title="@Describe(y)" aria-label="@Describe(y)" aria-pressed="@(y.Year == Selected ? "true" : "false")"
+                    @onclick="() => SelectedChanged.InvokeAsync(y.Year)" data-testid="year-bar">
+                <span class="bar-value">@(showLabel ? y.Books.ToString() : "")</span>
+                <span class="bar" style="height: @(height.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+            </button>
+        }
+    </div>
+    <div class="bar-axis" aria-hidden="true">
+        @foreach (var year in Years)
+        {
+            <span class="@(year.Year == Selected ? "selected" : null)">@ShortYear(year.Year)</span>
+        }
+    </div>
+    <details class="chart-table">
+        <summary>Show as a table</summary>
+        <table>
+            <thead><tr><th scope="col">Year</th><th scope="col">Books finished</th></tr></thead>
+            <tbody>
+                @foreach (var year in Years)
+                {
+                    <tr><td>@year.Year</td><td>@year.Books</td></tr>
+                }
+            </tbody>
+        </table>
+    </details>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<YearCount> Years { get; set; } = [];
+    [Parameter] public int? Selected { get; set; }
+    [Parameter] public EventCallback<int> SelectedChanged { get; set; }
+
+    private int Max => Years.Count == 0 ? 0 : Years.Max(y => y.Books);
+
+    private static string Describe(YearCount y) => $"{y.Year}: {y.Books} {(y.Books == 1 ? "book" : "books")}";
+
+    // Full years when there's room; "’19" style when there are many bars.
+    private string ShortYear(int year) => Years.Count > 6 ? $"’{year % 100:00}" : year.ToString();
+}

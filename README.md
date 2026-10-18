@@ -9,6 +9,7 @@ A family library app for keeping track of the books we own. It's an installable,
 - **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). The app guesses where the book is; drag the corners to adjust and it's straightened into a clean cover, shrunk to about 800px. Works offline and syncs to the other phone.
 - **Ratings and reading log:** each of us has our own 1–5 stars, review, status (Want to read / Reading / Read) and the dates we read a book (as exact as we remember: a day, a month or just a year). You see the other person's too.
 - **Reading lists:** each of us has an ordered list of books to read next (drag to reorder; "Start" on the top one). Books we don't own yet can go on it as **wishlist** books, kept off the shelf until "Got it" (or scanning the barcode) moves them across. You can peek at the other person's list.
+- **At a glance:** your reading stats (books finished this year or in the last 12 months, per-year chart, "year in books", ratings, most-read authors, five-star books, fun facts), with a summary strip on the shelf.
 - Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname, date added or your rating; filter by your reading status. Books you're reading are pinned at the top.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
 
@@ -30,6 +31,7 @@ src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
   Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
   Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
+  Features/Dashboard/   At a glance page, LibraryStatsCalculator (pure), year bar chart, period preference
   Features/ReadingLog/  ReadingService, ReadingPanel (book page), StarRating, ReadingListPage (wwwroot/js/reorder.js)
   Features/Photos/      PhotoService, PhotoButton, CoverCropper, IPhotoStore (wwwroot/js/photos.js, cover-geometry.js)
   Features/Account/     AuthService, sign-in screen

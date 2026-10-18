@@ -1155,3 +1155,285 @@ h1:focus {
     align-items: center;
     gap: 0.5rem 1rem;
 }
+
+/* At a glance (dashboard) */
+.shelf-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: -0.25rem 0 0.75rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+    color: var(--mud-palette-text-primary);
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+.shelf-summary .mud-icon-root {
+    color: var(--mud-palette-primary);
+}
+
+.shelf-summary-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.shelf-summary .shelf-summary-more {
+    flex: 0 0 auto;
+}
+
+.stats-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: var(--mud-palette-surface);
+    border-radius: var(--mud-default-borderradius);
+}
+
+.stat-hero-value {
+    font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--mud-palette-primary);
+}
+
+.stat-hero-label {
+    font-size: 1.15rem;
+}
+
+.stat-hero-sub {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.stat-hero-sub a,
+.fact-list a,
+.ranked-list a,
+.year-summary a {
+    color: var(--mud-palette-primary);
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.75rem;
+}
+
+.stat-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.75rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    text-decoration: none;
+}
+
+.stat-value {
+    font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* Books per year: one series in the binding's primary colour, square at the baseline, rounded at the top. */
+.bar-chart {
+    --bar-height: 9rem;
+}
+
+.bar-plot {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: calc(var(--bar-height) + 1.4rem);
+    border-bottom: 1px solid var(--mud-palette-lines-inputs);
+}
+
+.bar-slot {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    color: var(--mud-palette-text-primary);
+}
+
+.bar-slot:focus-visible {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 2px;
+}
+
+.bar-value {
+    font-size: 0.8rem;
+    min-height: 1.2rem;
+}
+
+.bar {
+    display: block;
+    width: 100%;
+    max-width: 24px;
+    max-height: var(--bar-height);
+    border-radius: 4px 4px 0 0;
+    background: var(--mud-palette-primary);
+    opacity: 0.55;
+}
+
+.bar-slot.selected .bar,
+.bar-slot:hover .bar {
+    opacity: 1;
+}
+
+.bar-axis {
+    display: flex;
+    gap: 2px;
+    margin-top: 0.25rem;
+}
+
+.bar-axis span {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.bar-axis span.selected {
+    color: var(--mud-palette-text-primary);
+    font-weight: 600;
+}
+
+.chart-table {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.chart-table summary {
+    cursor: pointer;
+}
+
+.chart-table table {
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.chart-table th,
+.chart-table td {
+    padding: 0.15rem 0.75rem 0.15rem 0;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+}
+
+.rating-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.rating-bar-row {
+    display: grid;
+    grid-template-columns: 2.25rem 1fr 2.5rem;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rating-bar-label,
+.rating-bar-count {
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.rating-bar-count {
+    text-align: right;
+    color: var(--mud-palette-text-secondary);
+}
+
+.rating-bar-track {
+    display: block;
+    height: 12px;
+}
+
+.rating-bar {
+    display: block;
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    background: var(--mud-palette-primary);
+}
+
+.stat-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+}
+
+.ranked-list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.ranked-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+}
+
+.year-chips {
+    margin: 0;
+}
+
+.year-books {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.year-book {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    color: inherit;
+    text-decoration: none;
+}
+
+.year-book-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.year-book-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.fact-list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.fact-list li {
+    padding: 0.2rem 0;
+}
