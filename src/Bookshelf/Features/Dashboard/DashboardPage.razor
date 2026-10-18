@@ -145,9 +145,21 @@ else
             </MudPaper>
         }
 
-        @if (s.TopAuthors.Count > 0 || s.FiveStarBooks.Count > 0)
+        @if (s.TopAuthors.Count > 0 || s.FiveStarBooks.Count > 0 || s.TopGenres.Count > 0)
         {
             <div class="stat-columns mb-4">
+                @if (s.TopGenres.Count > 0)
+                {
+                    <MudPaper Class="pa-4 tooled-panel" Elevation="3" data-testid="top-genres">
+                        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Favourite genres</MudText>
+                        <ol class="ranked-list">
+                            @foreach (var genre in s.TopGenres)
+                            {
+                                <li><a href="@($"./?genre={genre.Genre}")">@GenreCatalogue.Label(genre.Genre)</a><span class="text-secondary">@genre.Books read</span></li>
+                            }
+                        </ol>
+                    </MudPaper>
+                }
                 @if (s.TopAuthors.Count > 0)
                 {
                     <MudPaper Class="pa-4 tooled-panel" Elevation="3" data-testid="top-authors">
@@ -194,6 +206,10 @@ else
             @if (s.OnShelf > 0)
             {
                 <li>You've read @Percent(s.OnShelf - s.UnreadOnShelf, s.OnShelf) of the books on the shelf.</li>
+            }
+            @if (s.TopGenres.FirstOrDefault() is { } genre)
+            {
+                <li>The genre you read most is @GenreCatalogue.Label(genre.Genre).</li>
             }
             @if (s.TopAuthors.FirstOrDefault() is { } top)
             {

@@ -6,6 +6,8 @@
 @inject IDialogService Dialogs
 @inject Bookshelf.Features.Photos.PhotoService Photos
 @inject DashboardPreferences DashboardPrefs
+@inject Bookshelf.Features.Lookup.BookDetailsFiller Filler
+@inject IConnectivityService Connectivity
 
 <PageTitle>Settings · Bookshelf</PageTitle>
 
@@ -50,6 +52,45 @@
             </button>
         }
     </div>
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3" data-testid="fill-details">
+    <MudText Typo="Typo.h6" Class="mb-2">Synopses &amp; genres</MudText>
+    @if (Filler.IsRunning)
+    {
+        <MudText Typo="Typo.body2" Class="mb-2" data-testid="fill-progress">
+            Checked @Filler.Checked of @Filler.Total; filled in @Filler.Filled so far…
+        </MudText>
+        <MudProgressLinear Color="Color.Primary" Value="@(Filler.Total == 0 ? 0 : 100.0 * Filler.Checked / Filler.Total)" Class="mb-2" />
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Filler.Stop" data-testid="fill-stop">Stop</MudButton>
+    }
+    else
+    {
+        @if (Filler.Total > 0)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2" data-testid="fill-result">
+                Last run: filled in @Filler.Filled of the @Filler.Checked books checked.
+                @Filler.StoppedReason
+            </MudText>
+        }
+        <MudText Typo="Typo.body2" Class="mb-2 text-secondary" data-testid="fill-missing">
+            @(_missing switch
+            {
+                0 => "Every book has a synopsis and genres.",
+                1 => "1 book is missing a synopsis or genres.",
+                var n => $"{n} books are missing a synopsis or genres.",
+            })
+            This looks them up on Google Books and Open Library. New books get theirs automatically when scanned or found online.
+        </MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                   Disabled="@(_missing == 0 || !Connectivity.IsOnline)" OnClick="FillAsync" data-testid="fill-start">
+            Fill in missing details
+        </MudButton>
+        @if (!Connectivity.IsOnline)
+        {
+            <MudText Typo="Typo.caption" Class="d-block mt-1 text-secondary">Needs an internet connection.</MudText>
+        }
+    }
 </MudPaper>
 
 <MudPaper Class="pa-4 mb-4 tooled-panel" Elevation="3">
@@ -115,8 +156,19 @@
     }
 
     private StatsPeriod _period;
+    private int _missing;
 
-    protected override async Task OnInitializedAsync() => _period = await DashboardPrefs.GetPeriodAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _period = await DashboardPrefs.GetPeriodAsync();
+        _missing = await Filler.CountMissingAsync();
+    }
+
+    private async Task FillAsync()
+    {
+        await Filler.RunAsync();
+        _missing = await Filler.CountMissingAsync();
+    }
 
     private async Task SetPeriodAsync(StatsPeriod period)
     {
@@ -129,6 +181,7 @@
         Themes.Changed += OnChanged;
         Sync.StateChanged += OnChanged;
         Photos.Changed += OnChanged;
+        Filler.Changed += OnChanged;
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
@@ -138,5 +191,6 @@
         Themes.Changed -= OnChanged;
         Sync.StateChanged -= OnChanged;
         Photos.Changed -= OnChanged;
+        Filler.Changed -= OnChanged;
     }
 }

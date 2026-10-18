@@ -68,7 +68,11 @@ else
             </div>
             <MudTextField @bind-Value="_form.CoverUrl" Label="Cover image link (optional)" Variant="Variant.Outlined" Class="mb-3"
                           HelperText="Filled in by scanning. Your own photo is shown instead when there is one." InputType="InputType.Url" />
-            <MudTextField @bind-Value="_form.Notes" Label="Notes" Variant="Variant.Outlined" Lines="3" Sizing="InputSizing.Auto" Class="mb-3" />
+            <MudTextField @bind-Value="_form.Synopsis" Label="Synopsis" Variant="Variant.Outlined" Lines="4" Sizing="InputSizing.Auto"
+                          MaxLength="Bookshelf.Features.Lookup.LookupText.MaxSynopsis" Class="mb-3" data-testid="synopsis"
+                          HelperText="What the book is about. Filled in when the book is found online." />
+            <GenrePicker @bind-Selected="_form.Genres" />
+            <MudTextField @bind-Value="_form.Notes" Label="Notes" Variant="Variant.Outlined" Lines="3" Sizing="InputSizing.Auto" Class="mb-3 mt-3" />
         </MudForm>
         <div class="d-flex gap-2 justify-end">
             <MudButton Variant="Variant.Text" Href="@BackHref">Cancel</MudButton>

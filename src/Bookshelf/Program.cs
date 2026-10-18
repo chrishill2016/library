@@ -51,6 +51,7 @@ builder.Services.AddSingleton<IBookSource>(sp => new GoogleBooksSource(lookupHtt
 builder.Services.AddSingleton<IBookSource>(_ => new OpenLibrarySource(lookupHttp));
 builder.Services.AddSingleton<IBookLookup, BookLookupService>();
 builder.Services.AddSingleton<PendingLookupService>();
+builder.Services.AddSingleton<BookDetailsFiller>();
 builder.Services.AddSingleton<ScanService>();
 builder.Services.AddSingleton<IBarcodeScanner, BarcodeScanner>();
 builder.Services.AddSingleton<IPhotoStore, JsPhotoStore>();

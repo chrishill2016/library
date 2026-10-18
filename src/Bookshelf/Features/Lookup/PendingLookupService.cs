@@ -60,6 +60,8 @@ public sealed class PendingLookupService : IDisposable
                         Publisher = found.Publisher,
                         PublishedYear = found.PublishedYear,
                         CoverUrl = found.CoverUrl,
+                        Synopsis = current.Synopsis ?? found.Synopsis,
+                        Genres = current.Genres.Count > 0 ? current.Genres : found.SuggestedGenres,
                         LookupState = null,
                     }
                     : current with { LookupState = BookLookupState.NotFound });

@@ -57,7 +57,32 @@ else
                 {
                     <MudText Typo="Typo.h6" Class="text-secondary font-italic">@_book.Author</MudText>
                 }
+                @if (_book.Genres.Count > 0)
+                {
+                    <div class="genre-tags" data-testid="book-genres">
+                        @foreach (var genre in _book.Genres)
+                        {
+                            <a class="genre-tag" href="@($"./?genre={genre}")">@GenreCatalogue.Label(genre)</a>
+                        }
+                    </div>
+                }
                 <div class="ornament-rule"></div>
+                @if (!string.IsNullOrEmpty(_book.Synopsis))
+                {
+                    <div class="synopsis @(_synopsisOpen ? "open" : null)" data-testid="synopsis">
+                        @foreach (var paragraph in _book.Synopsis.Split("\n\n"))
+                        {
+                            <p>@paragraph</p>
+                        }
+                    </div>
+                    @if (_book.Synopsis.Length > SynopsisPreview)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Class="mb-2"
+                                   OnClick="() => _synopsisOpen = !_synopsisOpen" data-testid="synopsis-more">
+                            @(_synopsisOpen ? "Show less" : "Read more")
+                        </MudButton>
+                    }
+                }
                 <dl class="book-facts">
                     @if (_book.PublishedYear is { } year)
                     {
@@ -88,8 +113,11 @@ else
 }
 
 @code {
+    private const int SynopsisPreview = 320;
+
     private Book? _book;
     private bool _loading = true;
+    private bool _synopsisOpen;
 
     [Parameter] public string Id { get; set; } = "";
 

@@ -9,6 +9,7 @@ A family library app for keeping track of the books we own. It's an installable,
 - **Cover photos:** photograph a cover when there's no artwork (or you prefer your own). The app guesses where the book is; drag the corners to adjust and it's straightened into a clean cover, shrunk to about 800px. Works offline and syncs to the other phone.
 - **Ratings and reading log:** each of us has our own 1–5 stars, review, status (Want to read / Reading / Read) and the dates we read a book (as exact as we remember: a day, a month or just a year). You see the other person's too.
 - **Reading lists:** each of us has an ordered list of books to read next (drag to reorder; "Start" on the top one). Books we don't own yet can go on it as **wishlist** books, kept off the shelf until "Got it" (or scanning the barcode) moves them across. You can peek at the other person's list.
+- **Synopses and genres:** each book gets a synopsis and up to three genres (from a fixed list) when it's scanned or found online; both are editable. The shelf filters by genre, search covers both, and Settings → "Fill in missing details" looks up existing books.
 - **At a glance:** your reading stats (books finished this year or in the last 12 months, per-year chart, "year in books", ratings, most-read authors, five-star books, fun facts), with a summary strip on the shelf.
 - Add, edit and remove books; search by title, author or ISBN; sort by title (ignoring "The/A/An"), author surname, date added or your rating; filter by your reading status. Books you're reading are pinned at the top.
 - Everything is stored on the device and works offline. Changes sync through Firebase when online.
@@ -31,6 +32,7 @@ src/Bookshelf/
   Features/Books/       Shelf, details and edit pages; BookService; search and ISBN helpers
   Features/Scan/        ScanPage, ScanService (rapid/confirm, duplicates, undo), BarcodeScanner (wwwroot/js/scanner.js)
   Features/Lookup/      Google Books + Open Library sources, BookLookupService (merge), PendingLookupService, Find online page
+  Features/Genres/      GenreCatalogue (list + suggestions from online categories), GenrePicker
   Features/Dashboard/   At a glance page, LibraryStatsCalculator (pure), year bar chart, period preference
   Features/ReadingLog/  ReadingService, ReadingPanel (book page), StarRating, ReadingListPage (wwwroot/js/reorder.js)
   Features/Photos/      PhotoService, PhotoButton, CoverCropper, IPhotoStore (wwwroot/js/photos.js, cover-geometry.js)
@@ -92,6 +94,12 @@ The remote is Firestore (`FirestoreRemoteStore`):
   - Photos taken but never saved are dropped after a day.
 - **Replacing or removing:** a replaced or removed photo, or one belonging to a deleted book, is deleted from Storage. A tombstone record keeps the delete queued while offline.
 - **Other phones** download a photo the first time it's shown and keep it in IndexedDB for offline use.
+
+## Synopses and genres
+
+- **Where they come from:** Google Books gives a `description` (often HTML, cleaned to plain text by `LookupText.Synopsis`, kept to 4,000 characters) and `categories` ("Fiction / Mystery & Detective"). Open Library gives `subjects` (many and noisy).
+- **Genres** are keys from `GenreCatalogue` (e.g. `crime`), at most three per book, so labels can change without touching data. `GenreCatalogue.Suggest` matches whole words: a Google category's first part counts 3, later parts 2, each Open Library subject 1; non-fiction genres never come from fiction categories ("Fiction / Historical" isn't History).
+- **Filling existing books:** `BookDetailsFiller` (Settings) looks up books missing either, by ISBN or by exact title and first-author surname. It never overwrites, pauses between books, and syncs every 25 books rather than after each one.
 
 ## Ratings and the reading log
 

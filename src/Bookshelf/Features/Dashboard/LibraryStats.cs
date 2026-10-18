@@ -16,6 +16,8 @@ public sealed record AuthorCount(string Author, int Books);
 
 public sealed record YearCount(int Year, int Books);
 
+public sealed record GenreCount(string Genre, int Books);
+
 public sealed record ReadBook(Book Book, Reading Reading, ReadDate Date);
 
 /// <summary>Headline numbers and lists for the dashboard. Reading stats are the signed-in person's own.</summary>
@@ -48,6 +50,9 @@ public sealed record LibraryStats
     public IReadOnlyList<int> RatingCounts { get; init; } = [0, 0, 0, 0, 0];
     public IReadOnlyList<AuthorCount> TopAuthors { get; init; } = [];
     public IReadOnlyList<Book> FiveStarBooks { get; init; } = [];
+
+    /// <summary>Genres of the books I've read, most first (a book with three genres counts in each).</summary>
+    public IReadOnlyList<GenreCount> TopGenres { get; init; } = [];
 
     public bool HasReadingData => ReadAllTime > 0 || Rated > 0 || ReadingNow > 0 || OnReadingList > 0;
 }
@@ -109,6 +114,13 @@ public static class LibraryStatsCalculator
                 .Where(a => a.Books > 1)
                 .OrderByDescending(a => a.Books)
                 .ThenBy(a => a.Author, StringComparer.OrdinalIgnoreCase)
+                .Take(5)],
+            TopGenres = [.. mine.Where(r => r.HasRead)
+                .SelectMany(r => byId[r.BookId].Genres)
+                .GroupBy(g => g)
+                .Select(g => new GenreCount(g.Key, g.Count()))
+                .OrderByDescending(g => g.Books)
+                .ThenBy(g => Genres.GenreCatalogue.Label(g.Genre))
                 .Take(5)],
             FiveStarBooks = [.. rated.Where(r => r.Rating == 5)
                 .OrderByDescending(r => r.Reads.Count == 0 ? null : r.Reads.Max())

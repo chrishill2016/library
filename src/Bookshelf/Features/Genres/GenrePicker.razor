@@ -1,0 +1,35 @@
+@* Tap genres on or off (up to three), grouped Fiction / Non-fiction / Younger readers & more. *@
+<div class="genre-picker" data-testid="genre-picker">
+    <MudText Typo="Typo.body2" Class="mb-1">
+        Genres <span class="text-secondary">(up to @GenreCatalogue.MaxPerBook@(Selected.Count > 0 ? $"; {Selected.Count} chosen" : ""))</span>
+    </MudText>
+    @foreach (var group in GenreCatalogue.All.GroupBy(g => g.Group))
+    {
+        <div class="genre-group">
+            <span class="genre-group-name">@group.Key</span>
+            <div class="genre-chips" role="group" aria-label="@group.Key">
+                @foreach (var genre in group)
+                {
+                    var key = genre.Key;
+                    var on = Selected.Contains(key);
+                    <button type="button" class="filter-chip @(on ? "selected" : null)" aria-pressed="@(on ? "true" : "false")"
+                            disabled="@(!on && Selected.Count >= GenreCatalogue.MaxPerBook)"
+                            @onclick="() => ToggleAsync(key)" data-testid="@($"genre-{key}")">@genre.Label</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyCollection<string> Selected { get; set; } = [];
+    [Parameter] public EventCallback<IReadOnlyCollection<string>> SelectedChanged { get; set; }
+
+    private Task ToggleAsync(string key)
+    {
+        IReadOnlyCollection<string> next = Selected.Contains(key)
+            ? [.. Selected.Where(k => k != key)]
+            : Selected.Count >= GenreCatalogue.MaxPerBook ? Selected : [.. Selected, key];
+        return SelectedChanged.InvokeAsync(GenreCatalogue.Normalize(next));
+    }
+}
