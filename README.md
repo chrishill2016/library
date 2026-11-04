@@ -127,7 +127,9 @@ The remote is Firestore (`FirestoreRemoteStore`):
 ## Firebase setup
 
 - **Project:** `bookshelf-3a8ee`. The web config is in `src/Bookshelf/wwwroot/appsettings.json`; it's public by design, and the rules protect the data.
-  - The API key (also used for Google Books) is restricted in Google Cloud → APIs & Services → Credentials to `https://chrishill2016.github.io/*` and `http://localhost/*`, and to the Firebase APIs plus the Books API.
+  - The API key (also used for Google Books) is restricted in Google Cloud → APIs & Services → Credentials:
+    - **Websites:** `https://chrishill2016.github.io/*`, `http://localhost/*`, and the Firebase auth domains `https://bookshelf-3a8ee.firebaseapp.com/*` and `https://bookshelf-3a8ee.web.app/*`. Google sign-in finishes on the auth domain's `/__/auth/handler` page using this key, so leaving those out makes sign-in fail with "The requested action is invalid".
+    - **APIs:** the Firebase ones (including Identity Toolkit and Token Service, needed for sign-in) plus the Books API.
   - Secret scanners flag it; `.gitguardian.yaml` marks this exact key (by SHA-256) as known and public.
 - **Authorized domains:** Authentication → Settings must include `chrishill2016.github.io` and `localhost`.
 - **Deploying rules:**
